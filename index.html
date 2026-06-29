@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 1</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 3</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -76,7 +76,75 @@
         <div class="panel"><h2>Stage 1 Status</h2><p>This first V2 build only tests login, layout, navigation, session persistence, and GitHub Pages deployment.</p></div>
       </section>
 
-      <section id="page-projects" class="page placeholder"><h2>Projects</h2><p>Coming in a later build.</p></section>
+      <section id="page-projects" class="page">
+        <div class="page-actions">
+          <div>
+            <h2>Projects</h2>
+            <p class="muted">Add and manage property projects/sites.</p>
+          </div>
+          <button id="addProjectBtn" class="primary">+ Add Project</button>
+        </div>
+
+        <div id="projectFormPanel" class="panel hidden">
+          <h2 id="projectFormTitle">Add Project</h2>
+          <form id="projectForm" class="form-grid">
+            <input type="hidden" id="projectId" />
+            <div>
+              <label>Project Name *</label>
+              <input id="projectName" required placeholder="Example: IGTV" />
+            </div>
+            <div>
+              <label>Location</label>
+              <input id="projectLocation" placeholder="Example: Bharakahu, Islamabad" />
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="projectStatus">
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="paused">Paused</option>
+              </select>
+            </div>
+            <div>
+              <label>Start Date</label>
+              <input id="projectStartDate" type="date" />
+            </div>
+            <div class="span-2">
+              <label>Notes</label>
+              <textarea id="projectNotes" rows="3" placeholder="Optional notes"></textarea>
+            </div>
+            <div class="span-2 form-actions">
+              <button class="primary" type="submit">Save Project</button>
+              <button class="ghost" type="button" id="cancelProjectBtn">Cancel</button>
+            </div>
+          </form>
+          <p id="projectMessage" class="message"></p>
+        </div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <input id="projectSearch" placeholder="Search projects..." />
+            <button id="refreshProjectsBtn" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Start Date</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTableBody">
+                <tr><td colspan="6">Loading projects...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section id="page-plots" class="page placeholder"><h2>Plots</h2><p>Coming in a later build.</p></section>
       <section id="page-clients" class="page placeholder"><h2>Clients</h2><p>Coming in a later build.</p></section>
       <section id="page-sellers" class="page placeholder"><h2>Sellers</h2><p>Coming in a later build.</p></section>
@@ -92,7 +160,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=1"></script>
-  <script src="app.js?v=1"></script>
+  <script src="config.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
