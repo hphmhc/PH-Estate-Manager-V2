@@ -1,17 +1,11 @@
 # PH Estate Manager V2
 
-Clean rebuild of PH Estate Manager.
+## Stage 5
 
-## Stage 4
-
-This stage includes:
-
-- Login and Supabase session restore
-- Sidebar/navigation/dashboard shell
+Includes:
 - Projects module
 - Plots module
-- Add/edit/delete/search projects
-- Add/edit/delete/search/filter plots
-- Dashboard project/client/plot counts
-
-Sale deals, clients, payments, and ledger modules are still placeholders.
+- Clients module
+- Alphabetical sorting for projects and clients
+- Plot sorting by project name, then natural plot number
+- Dashboard counts
