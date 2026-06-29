@@ -2,11 +2,16 @@
 
 Clean rebuild of PH Estate Manager.
 
-## Stage 1
+## Stage 4
 
-This stage includes login, Supabase connection, session restore, sidebar navigation, dashboard shell, and GitHub Pages-ready static files.
+This stage includes:
 
+- Login and Supabase session restore
+- Sidebar/navigation/dashboard shell
+- Projects module
+- Plots module
+- Add/edit/delete/search projects
+- Add/edit/delete/search/filter plots
+- Dashboard project/client/plot counts
 
-## Stage 3
-
-Adds Projects CRUD connected to Supabase and basic dashboard counts.
+Sale deals, clients, payments, and ledger modules are still placeholders.
