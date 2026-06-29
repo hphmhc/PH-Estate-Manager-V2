@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 5</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 6</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -73,7 +73,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 5 Status</h2><p>Projects, Plots, and Clients modules are active. Tables are sorted alphabetically; plots are sorted by project, then plot number.</p></div>
+        <div class="panel"><h2>Stage 6 Status</h2><p>Projects, Plots, Clients, and Sellers modules are active. Input formatting and Urdu auto-fill helpers are now added.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -166,7 +166,7 @@
             </div>
             <div>
               <label>Plot No *</label>
-              <input id="plotNo" required placeholder="Example: B-61" />
+              <input id="plotNo" data-format="plot-no" required placeholder="Example: B-61" />
             </div>
             <div>
               <label>Plot Size</label>
@@ -283,13 +283,13 @@
           <form id="clientForm" class="form-grid">
             <input type="hidden" id="clientId" />
             <div><label>Client Name English *</label><input id="clientNameEn" required placeholder="Example: Ayaz Khan" /></div>
-            <div><label>Client Name Urdu</label><input id="clientNameUr" dir="rtl" /></div>
+            <div><label>Client Name Urdu</label><div class="input-with-button"><input id="clientNameUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="clientNameEn" data-translate-to="clientNameUr">Auto Urdu</button></div></div>
             <div><label>Father Name English</label><input id="clientFatherEn" /></div>
-            <div><label>Father Name Urdu</label><input id="clientFatherUr" dir="rtl" /></div>
-            <div><label>CNIC</label><input id="clientCnic" placeholder="XXXXX-XXXXXXX-X" /></div>
-            <div><label>Phone</label><input id="clientPhone" placeholder="03XX-XXXXXXX" /></div>
+            <div><label>Father Name Urdu</label><div class="input-with-button"><input id="clientFatherUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="clientFatherEn" data-translate-to="clientFatherUr">Auto Urdu</button></div></div>
+            <div><label>CNIC</label><input id="clientCnic" data-format="cnic" placeholder="XXXXX-XXXXXXX-X" maxlength="15" /></div>
+            <div><label>Phone</label><input id="clientPhone" data-format="phone" placeholder="03XX-XXXXXXX" maxlength="12" /></div>
             <div class="span-2"><label>Address English</label><textarea id="clientAddressEn" rows="2"></textarea></div>
-            <div class="span-2"><label>Address Urdu</label><textarea id="clientAddressUr" rows="2" dir="rtl"></textarea></div>
+            <div class="span-2"><label>Address Urdu</label><div class="input-with-button vertical"><textarea id="clientAddressUr" rows="2" dir="rtl"></textarea><button type="button" class="mini-btn" data-translate-from="clientAddressEn" data-translate-to="clientAddressUr">Auto Urdu</button></div></div>
             <div class="span-2"><label>Notes</label><textarea id="clientNotes" rows="3"></textarea></div>
             <div class="span-2 form-actions">
               <button class="primary" type="submit">Save Client</button>
@@ -314,7 +314,51 @@
           </div>
         </div>
       </section>
-      <section id="page-sellers" class="page placeholder"><h2>Sellers</h2><p>Coming in a later build.</p></section>
+      <section id="page-sellers" class="page">
+        <div class="page-actions">
+          <div>
+            <h2>Sellers</h2>
+            <p class="muted">Add and manage seller/land owner records.</p>
+          </div>
+          <button id="addSellerBtn" class="primary">+ Add Seller</button>
+        </div>
+
+        <div id="sellerFormPanel" class="panel hidden">
+          <h2 id="sellerFormTitle">Add Seller</h2>
+          <form id="sellerForm" class="form-grid">
+            <input type="hidden" id="sellerId" />
+            <div><label>Seller Name English *</label><input id="sellerNameEn" required placeholder="Example: Ayaz Khan" /></div>
+            <div><label>Seller Name Urdu</label><div class="input-with-button"><input id="sellerNameUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="sellerNameEn" data-translate-to="sellerNameUr">Auto Urdu</button></div></div>
+            <div><label>Father Name English</label><input id="sellerFatherEn" /></div>
+            <div><label>Father Name Urdu</label><div class="input-with-button"><input id="sellerFatherUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="sellerFatherEn" data-translate-to="sellerFatherUr">Auto Urdu</button></div></div>
+            <div><label>CNIC</label><input id="sellerCnic" data-format="cnic" placeholder="XXXXX-XXXXXXX-X" maxlength="15" /></div>
+            <div><label>Phone</label><input id="sellerPhone" data-format="phone" placeholder="03XX-XXXXXXX" maxlength="12" /></div>
+            <div class="span-2"><label>Address English</label><textarea id="sellerAddressEn" rows="2"></textarea></div>
+            <div class="span-2"><label>Address Urdu</label><div class="input-with-button vertical"><textarea id="sellerAddressUr" rows="2" dir="rtl"></textarea><button type="button" class="mini-btn" data-translate-from="sellerAddressEn" data-translate-to="sellerAddressUr">Auto Urdu</button></div></div>
+            <div class="span-2"><label>Notes</label><textarea id="sellerNotes" rows="3"></textarea></div>
+            <div class="span-2 form-actions">
+              <button class="primary" type="submit">Save Seller</button>
+              <button class="ghost" type="button" id="cancelSellerBtn">Cancel</button>
+            </div>
+          </form>
+          <p id="sellerMessage" class="message"></p>
+        </div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <input id="sellerSearch" placeholder="Search name, father name, CNIC, phone, address..." />
+            <button id="refreshSellersBtn" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Father Name</th><th>CNIC</th><th>Phone</th><th>Address</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="sellersTableBody"><tr><td colspan="6">Loading sellers...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section id="page-sale-deals" class="page placeholder"><h2>Sale Deals</h2><p>Coming in a later build.</p></section>
       <section id="page-agents" class="page placeholder"><h2>Agents</h2><p>Coming in a later build.</p></section>
       <section id="page-cases" class="page placeholder"><h2>Cases</h2><p>Coming in a later build.</p></section>
@@ -327,7 +371,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
 const supabaseClient=window.supabase.createClient(PH_CONFIG.supabaseUrl,PH_CONFIG.supabasePublishableKey);
-const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[]};
+const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[]};
 const pageTitles={dashboard:"Dashboard",projects:"Projects",plots:"Plots",clients:"Clients",sellers:"Sellers","sale-deals":"Sale Deals",agents:"Agents",cases:"Cases","daily-accounts":"Daily Accounts",documents:"Documents",reports:"Reports",users:"Users",settings:"Settings","import-backup":"Import / Backup"};
 function setMessage(m){$("#loginMessage").textContent=m||""}function showApp(){$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden")}function showLogin(){$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden")}
 function updateUserUI(){const email=state.user?.email||"User";const name=state.profile?.full_name||email;const role=state.profile?.role||"manager";$("#userName").textContent=name;$("#userRole").textContent=role;const isAdmin=role==="admin";$$('.admin-only').forEach(el=>el.style.display=isAdmin?"":"none");if(!isAdmin&&["users","settings","import-backup"].includes(state.activePage)){goPage("dashboard")}}
 async function loadProfile(){const {data,error}=await supabaseClient.from("profiles").select("*").eq("auth_user_id",state.user.id).maybeSingle();if(error||!data){console.warn("Profile table not ready or no profile. Using temporary admin profile.",error?.message||"");state.profile={full_name:state.user.email,email:state.user.email,role:"admin",status:"active"};return}state.profile=data}
-function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="dashboard")refreshDashboardCounts()}
+function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="sellers")loadSellers();if(page==="dashboard")refreshDashboardCounts()}
 function goPage(page,options={}){if(!pageTitles[page])page="dashboard";const previous=state.activePage||"dashboard";state.activePage=page;if(!options.fromBack&&previous!==page){state.pageHistory.push(page);sessionStorage.setItem("phv2PageHistory",JSON.stringify(state.pageHistory));if(!state.isNavigatingFromPop)history.pushState({phv2:true,page},"",`#${page}`)}renderPage(page)}
 function setupNavigation(){$$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{goPage(btn.dataset.page);$("#sidebar").classList.remove("open")}));$("#menuBtn").addEventListener('click',()=>$("#sidebar").classList.toggle("open"));window.addEventListener('popstate',()=>{if(!state.user)return;if((state.activePage||"dashboard")!=="dashboard"&&state.pageHistory.length>1){state.pageHistory.pop();const target=state.pageHistory[state.pageHistory.length-1]||"dashboard";state.isNavigatingFromPop=true;goPage(target,{fromBack:true});state.isNavigatingFromPop=false;history.pushState({phv2:true,page:target},"",`#${target}`);return}if((state.activePage||"dashboard")==="dashboard")signOut()})}
 async function signIn(email,password){setMessage("Logging in...");const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error){setMessage(error.message);return}state.user=data.user;await loadProfile();showApp();updateUserUI();const savedPage=sessionStorage.getItem("phv2ActivePage")||"dashboard";state.activePage=savedPage;state.pageHistory=["dashboard",savedPage].filter((v,i,a)=>i===0||v!==a[i-1]);renderPage(savedPage);history.replaceState({phv2:true,page:savedPage},"",`#${savedPage}`);setMessage("")}
@@ -14,12 +14,76 @@ async function restoreSession(){const {data}=await supabaseClient.auth.getSessio
 
 
 
+
+// -----------------------------
+// Stage 6: Input formatting and Urdu auto-fill helpers
+// -----------------------------
+function formatPlotNumber(value){
+  let v = String(value || '').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+  v = v.replace(/-/g,'');
+  return v.replace(/^([A-Z]+)(\d+)$/, '$1-$2');
+}
+function formatCnic(value){
+  const digits = String(value || '').replace(/\D/g,'').slice(0,13);
+  if(digits.length <= 5) return digits;
+  if(digits.length <= 12) return digits.slice(0,5) + '-' + digits.slice(5);
+  return digits.slice(0,5) + '-' + digits.slice(5,12) + '-' + digits.slice(12);
+}
+function formatPhone(value){
+  const digits = String(value || '').replace(/\D/g,'').slice(0,11);
+  if(digits.length <= 4) return digits;
+  return digits.slice(0,4) + '-' + digits.slice(4);
+}
+function setupInputFormatters(){
+  $$('[data-format="plot-no"]').forEach(input=>{
+    input.addEventListener('input',()=>{input.value=formatPlotNumber(input.value)});
+    input.addEventListener('blur',()=>{input.value=formatPlotNumber(input.value)});
+  });
+  $$('[data-format="cnic"]').forEach(input=>{
+    input.addEventListener('input',()=>{input.value=formatCnic(input.value)});
+  });
+  $$('[data-format="phone"]').forEach(input=>{
+    input.addEventListener('input',()=>{input.value=formatPhone(input.value)});
+  });
+}
+async function translateToUrdu(text){
+  const clean = String(text || '').trim();
+  if(!clean) return '';
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ur&dt=t&q=' + encodeURIComponent(clean);
+  const response = await fetch(url);
+  if(!response.ok) throw new Error('Translation service unavailable');
+  const data = await response.json();
+  return (data?.[0] || []).map(part => part?.[0] || '').join('');
+}
+function setupUrduButtons(){
+  $$('[data-translate-from][data-translate-to]').forEach(button=>{
+    button.addEventListener('click', async ()=>{
+      const from = $('#' + button.dataset.translateFrom);
+      const to = $('#' + button.dataset.translateTo);
+      if(!from || !to) return;
+      const original = button.textContent;
+      try{
+        button.textContent = 'Translating...';
+        button.disabled = true;
+        const translated = await translateToUrdu(from.value);
+        if(translated) to.value = translated;
+      }catch(err){
+        alert('Auto Urdu translation failed. You can type Urdu manually for now.');
+      }finally{
+        button.textContent = original;
+        button.disabled = false;
+      }
+    });
+  });
+}
+
 // -----------------------------
 // Stage 5: Shared sorting helpers
 // -----------------------------
 function naturalCompare(a,b){return String(a||'').localeCompare(String(b||''),undefined,{numeric:true,sensitivity:'base'})}
 function sortProjects(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name,b.name))}
 function sortClients(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
+function sortSellers(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
 function sortPlots(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(getProjectName(a.project_id),getProjectName(b.project_id))||naturalCompare(a.plot_no,b.plot_no))}
 
 // -----------------------------
@@ -106,7 +170,7 @@ async function showPlotForm(plot=null){
   f.title.textContent=plot?'Edit Plot':'Add Plot';
   f.id.value=plot?.id||'';
   f.projectId.value=plot?.project_id||'';
-  f.plotNo.value=plot?.plot_no||'';
+  f.plotNo.value=formatPlotNumber(plot?.plot_no||'');
   f.plotSize.value=plot?.plot_size??'';
   f.plotUnit.value=plot?.plot_unit||'Marla';
   f.plotSizeMarla.value=plot?.plot_size_marla??'';
@@ -177,7 +241,7 @@ async function savePlot(e){
   const autoMarla = calculateMarla(size, f.plotUnit.value);
   const payload={
     project_id:f.projectId.value||null,
-    plot_no:f.plotNo.value.trim(),
+    plot_no:formatPlotNumber(f.plotNo.value.trim()),
     plot_size:size,
     plot_unit:f.plotUnit.value||null,
     plot_size_marla:f.plotSizeMarla.value ? Number(f.plotSizeMarla.value) : autoMarla,
@@ -246,8 +310,21 @@ function showClientForm(client=null){const f=clientFormElements();f.panel.classL
 function hideClientForm(){const f=clientFormElements();f.form.reset();f.id.value='';f.panel.classList.add('hidden');f.message.textContent=''}
 async function loadClients(){const tbody=$('#clientsTableBody');if(!tbody)return;tbody.innerHTML='<tr><td colspan="6">Loading clients...</td></tr>';const {data,error}=await supabaseClient.from('clients').select('*').order('name_en',{ascending:true});if(error){tbody.innerHTML=`<tr><td colspan="6">Error: ${escapeHtml(error.message)}</td></tr>`;return}state.clients=sortClients(data||[]);renderClients()}
 function renderClients(){const tbody=$('#clientsTableBody');if(!tbody)return;const q=($('#clientSearch')?.value||'').toLowerCase().trim();const rows=sortClients(state.clients||[]).filter(c=>{const haystack=[c.name_en,c.name_ur,c.father_en,c.father_ur,c.cnic,c.phone,c.address_en,c.address_ur,c.notes].join(' ').toLowerCase();return !q||haystack.includes(q)});if(!rows.length){tbody.innerHTML='<tr><td colspan="6">No clients found.</td></tr>';return}tbody.innerHTML=rows.map(c=>`<tr><td data-label="Name"><strong>${escapeHtml(c.name_en||'')}</strong>${c.name_ur?`<br><small dir="rtl">${escapeHtml(c.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(c.father_en||'-')}${c.father_ur?`<br><small dir="rtl">${escapeHtml(c.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(c.cnic||'-')}</td><td data-label="Phone">${escapeHtml(c.phone||'-')}</td><td data-label="Address">${escapeHtml(c.address_en||'-')}${c.address_ur?`<br><small dir="rtl">${escapeHtml(c.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-client="${c.id}">Edit</button><button class="danger-btn" data-delete-client="${c.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-client]').forEach(btn=>btn.onclick=()=>showClientForm((state.clients||[]).find(c=>c.id===btn.dataset.editClient)));$$('[data-delete-client]').forEach(btn=>btn.onclick=()=>deleteClient(btn.dataset.deleteClient))}
-async function saveClient(e){e.preventDefault();const f=clientFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:f.cnic.value.trim()||null,phone:f.phone.value.trim()||null,address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Client name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('clients').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('clients').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideClientForm();await loadClients();await refreshDashboardCounts()}
+async function saveClient(e){e.preventDefault();const f=clientFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:formatCnic(f.cnic.value.trim())||null,phone:formatPhone(f.phone.value.trim())||null,address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Client name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('clients').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('clients').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideClientForm();await loadClients();await refreshDashboardCounts()}
 async function deleteClient(id){if(!confirm('Delete this client? Only do this for test records.'))return;const {error}=await supabaseClient.from('clients').delete().eq('id',id);if(error){alert(error.message);return}await loadClients();await refreshDashboardCounts()}
 function setupClientsModule(){if($('#addClientBtn'))$('#addClientBtn').onclick=()=>showClientForm();if($('#cancelClientBtn'))$('#cancelClientBtn').onclick=hideClientForm;if($('#clientForm'))$('#clientForm').onsubmit=saveClient;if($('#refreshClientsBtn'))$('#refreshClientsBtn').onclick=loadClients;if($('#clientSearch'))$('#clientSearch').oninput=renderClients}
 
-function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();await restoreSession();refreshDashboardCounts()}init();
+
+// -----------------------------
+// Stage 6: Sellers module
+// -----------------------------
+function sellerFormElements(){return {panel:$('#sellerFormPanel'),form:$('#sellerForm'),title:$('#sellerFormTitle'),id:$('#sellerId'),nameEn:$('#sellerNameEn'),nameUr:$('#sellerNameUr'),fatherEn:$('#sellerFatherEn'),fatherUr:$('#sellerFatherUr'),cnic:$('#sellerCnic'),phone:$('#sellerPhone'),addressEn:$('#sellerAddressEn'),addressUr:$('#sellerAddressUr'),notes:$('#sellerNotes'),message:$('#sellerMessage')}}
+function showSellerForm(seller=null){const f=sellerFormElements();f.panel.classList.remove('hidden');f.title.textContent=seller?'Edit Seller':'Add Seller';f.id.value=seller?.id||'';f.nameEn.value=seller?.name_en||'';f.nameUr.value=seller?.name_ur||'';f.fatherEn.value=seller?.father_en||'';f.fatherUr.value=seller?.father_ur||'';f.cnic.value=formatCnic(seller?.cnic||'');f.phone.value=formatPhone(seller?.phone||'');f.addressEn.value=seller?.address_en||'';f.addressUr.value=seller?.address_ur||'';f.notes.value=seller?.notes||'';f.message.textContent='';f.nameEn.focus()}
+function hideSellerForm(){const f=sellerFormElements();f.form.reset();f.id.value='';f.panel.classList.add('hidden');f.message.textContent=''}
+async function loadSellers(){const tbody=$('#sellersTableBody');if(!tbody)return;tbody.innerHTML='<tr><td colspan="6">Loading sellers...</td></tr>';const {data,error}=await supabaseClient.from('sellers').select('*').order('name_en',{ascending:true});if(error){tbody.innerHTML=`<tr><td colspan="6">Error: ${escapeHtml(error.message)}</td></tr>`;return}state.sellers=sortSellers(data||[]);renderSellers()}
+function renderSellers(){const tbody=$('#sellersTableBody');if(!tbody)return;const q=($('#sellerSearch')?.value||'').toLowerCase().trim();const rows=sortSellers(state.sellers||[]).filter(s=>{const haystack=[s.name_en,s.name_ur,s.father_en,s.father_ur,s.cnic,s.phone,s.address_en,s.address_ur,s.notes].join(' ').toLowerCase();return !q||haystack.includes(q)});if(!rows.length){tbody.innerHTML='<tr><td colspan="6">No sellers found.</td></tr>';return}tbody.innerHTML=rows.map(s=>`<tr><td data-label="Name"><strong>${escapeHtml(s.name_en||'')}</strong>${s.name_ur?`<br><small dir="rtl">${escapeHtml(s.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(s.father_en||'-')}${s.father_ur?`<br><small dir="rtl">${escapeHtml(s.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(s.cnic||'-')}</td><td data-label="Phone">${escapeHtml(s.phone||'-')}</td><td data-label="Address">${escapeHtml(s.address_en||'-')}${s.address_ur?`<br><small dir="rtl">${escapeHtml(s.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-seller="${s.id}">Edit</button><button class="danger-btn" data-delete-seller="${s.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-seller]').forEach(btn=>btn.onclick=()=>showSellerForm((state.sellers||[]).find(s=>s.id===btn.dataset.editSeller)));$$('[data-delete-seller]').forEach(btn=>btn.onclick=()=>deleteSeller(btn.dataset.deleteSeller))}
+async function saveSeller(e){e.preventDefault();const f=sellerFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:formatCnic(f.cnic.value.trim())||null,phone:formatPhone(f.phone.value.trim())||null,address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Seller name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('sellers').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('sellers').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideSellerForm();await loadSellers()}
+async function deleteSeller(id){if(!confirm('Delete this seller? Only do this for test records.'))return;const {error}=await supabaseClient.from('sellers').delete().eq('id',id);if(error){alert(error.message);return}await loadSellers()}
+function setupSellersModule(){if($('#addSellerBtn'))$('#addSellerBtn').onclick=()=>showSellerForm();if($('#cancelSellerBtn'))$('#cancelSellerBtn').onclick=hideSellerForm;if($('#sellerForm'))$('#sellerForm').onsubmit=saveSeller;if($('#refreshSellersBtn'))$('#refreshSellersBtn').onclick=loadSellers;if($('#sellerSearch'))$('#sellerSearch').oninput=renderSellers}
+
+function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupInputFormatters();setupUrduButtons();await restoreSession();refreshDashboardCounts()}init();
