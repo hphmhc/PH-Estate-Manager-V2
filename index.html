@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PH Estate Manager V2</title>
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body>
+  <div id="loginView" class="login-screen">
+    <div class="login-card">
+      <div class="brand-row">
+        <div class="logo">PH</div>
+        <div>
+          <h1>PH Estate Manager V2</h1>
+          <p>Secure office management system</p>
+        </div>
+      </div>
+      <form id="loginForm">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="Enter email" required />
+        <label>Password</label>
+        <input id="loginPassword" type="password" placeholder="Enter password" required />
+        <button type="submit" class="primary full">Login</button>
+      </form>
+      <p id="loginMessage" class="message"></p>
+    </div>
+  </div>
+
+  <div id="appView" class="app hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row sidebar-brand">
+        <div class="logo">PH</div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 1</small></div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-page="dashboard">Dashboard</button>
+        <button class="nav-item" data-page="projects">Projects</button>
+        <button class="nav-item" data-page="plots">Plots</button>
+        <button class="nav-item" data-page="clients">Clients</button>
+        <button class="nav-item" data-page="sellers">Sellers</button>
+        <button class="nav-item" data-page="sale-deals">Sale Deals</button>
+        <button class="nav-item" data-page="agents">Agents</button>
+        <button class="nav-item" data-page="cases">Cases</button>
+        <button class="nav-item" data-page="daily-accounts">Daily Accounts</button>
+        <button class="nav-item" data-page="documents">Documents</button>
+        <button class="nav-item" data-page="reports">Reports</button>
+        <button class="nav-item admin-only" data-page="users">Users</button>
+        <button class="nav-item admin-only" data-page="settings">Settings</button>
+        <button class="nav-item admin-only" data-page="import-backup">Import / Backup</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <button id="menuBtn" class="menu-btn">☰</button>
+          <div><h1 id="pageTitle">Dashboard</h1><p id="breadcrumb">Dashboard</p></div>
+        </div>
+        <div class="top-user">
+          <span id="userName">User</span><span id="userRole" class="role">manager</span><button id="logoutBtn" class="ghost">Logout</button>
+        </div>
+      </header>
+
+      <section id="page-dashboard" class="page active">
+        <div class="filters"><select><option>All Projects</option></select><select><option>This Year</option><option>This Month</option></select></div>
+        <div class="cards">
+          <div class="card"><p>Projects</p><h2>0</h2><small>Total projects</small></div>
+          <div class="card"><p>Plots</p><h2>0 / 0</h2><small>Available / total</small></div>
+          <div class="card"><p>Clients</p><h2>0</h2><small>Client records</small></div>
+          <div class="card"><p>Receivables</p><h2>Rs. 0</h2><small>Plot balance + dues + pending cheques</small></div>
+          <div class="card wide"><p>Money Received</p><h2>Rs. 0</h2><small>Cash + online + cleared cheques</small></div>
+          <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
+          <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
+        </div>
+        <div class="panel"><h2>Stage 1 Status</h2><p>This first V2 build only tests login, layout, navigation, session persistence, and GitHub Pages deployment.</p></div>
+      </section>
+
+      <section id="page-projects" class="page placeholder"><h2>Projects</h2><p>Coming in a later build.</p></section>
+      <section id="page-plots" class="page placeholder"><h2>Plots</h2><p>Coming in a later build.</p></section>
+      <section id="page-clients" class="page placeholder"><h2>Clients</h2><p>Coming in a later build.</p></section>
+      <section id="page-sellers" class="page placeholder"><h2>Sellers</h2><p>Coming in a later build.</p></section>
+      <section id="page-sale-deals" class="page placeholder"><h2>Sale Deals</h2><p>Coming in a later build.</p></section>
+      <section id="page-agents" class="page placeholder"><h2>Agents</h2><p>Coming in a later build.</p></section>
+      <section id="page-cases" class="page placeholder"><h2>Cases</h2><p>Coming in a later build.</p></section>
+      <section id="page-daily-accounts" class="page placeholder"><h2>Daily Accounts</h2><p>Coming in a later build.</p></section>
+      <section id="page-documents" class="page placeholder"><h2>Documents</h2><p>Coming in a later build.</p></section>
+      <section id="page-reports" class="page placeholder"><h2>Reports</h2><p>Coming in a later build.</p></section>
+      <section id="page-users" class="page placeholder admin-page"><h2>Users</h2><p>Admin-only page placeholder.</p></section>
+      <section id="page-settings" class="page placeholder admin-page"><h2>Settings</h2><p>Admin-only page placeholder.</p></section>
+      <section id="page-import-backup" class="page placeholder admin-page"><h2>Import / Backup</h2><p>Admin-only page placeholder.</p></section>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+</body>
+</html>
