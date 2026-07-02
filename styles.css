@@ -16,3 +16,4 @@ small[dir="rtl"],input[dir="rtl"],textarea[dir="rtl"]{text-align:right}
 .mini-btn:disabled{opacity:.65;cursor:not-allowed}
 small[dir="rtl"],input[dir="rtl"],textarea[dir="rtl"]{text-align:right}
 @media(max-width:900px){.input-with-button{align-items:stretch;flex-direction:column}.mini-btn{width:100%}}
+\n/* Stage 7 additions */\n.status-badge.inactive{background:#fee2e2;color:#991b1b}\n
