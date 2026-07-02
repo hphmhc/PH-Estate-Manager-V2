@@ -1,10 +1,16 @@
 # PH Estate Manager V2
 
-## Stage 7 Verified
+## Stage 8
 
 Adds:
-- Agents module
-- 8-hour inactivity login expiry
-- Previous sorting, formatting, seller/client/plot/project features kept
+- Cases module
+- Add/edit/delete/search/filter cases
+- Link cases to project, plot, client, and seller
+- Lawyer name/phone and court/office fields
+- Case status/type fields
+- Existing modules kept: Projects, Plots, Clients, Sellers, Agents
+- Existing rules kept: sorting, input formatting, Urdu helpers, 8-hour inactivity login expiry
 
-The favicon 404 in browser console is harmless and does not affect login.
+Notes:
+- Case parties and file uploads will come later.
+- Lawyer payments will be handled later through Daily Accounts / ledger entries linked to cases.

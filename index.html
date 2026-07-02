@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=7v2" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 7 Verified</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 8</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -73,7 +73,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 7 Verified Status</h2><p>Projects, Plots, Clients, Sellers, and Agents modules are active. Login expires after extended inactivity.</p></div>
+        <div class="panel"><h2>Stage 8 Status</h2><p>Projects, Plots, Clients, Sellers, Agents, and Cases modules are active.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -464,7 +464,139 @@
           </div>
         </div>
       </section>
-      <section id="page-cases" class="page placeholder"><h2>Cases</h2><p>Coming in a later build.</p></section>
+      <section id="page-cases" class="page">
+        <div class="page-actions">
+          <div>
+            <h2>Cases</h2>
+            <p class="muted">Add and manage office/legal case records. Case parties and file uploads will connect later.</p>
+          </div>
+          <button id="addCaseBtn" class="primary">+ Add Case</button>
+        </div>
+
+        <div id="caseFormPanel" class="panel hidden">
+          <h2 id="caseFormTitle">Add Case</h2>
+          <form id="caseForm" class="form-grid">
+            <input type="hidden" id="caseId" />
+            <div class="span-2">
+              <label>Case Title *</label>
+              <input id="caseTitle" required placeholder="Example: IGTV Plot B-61 dispute" />
+            </div>
+            <div>
+              <label>Case Type</label>
+              <select id="caseType">
+                <option value="property">Property</option>
+                <option value="civil">Civil</option>
+                <option value="criminal">Criminal</option>
+                <option value="revenue">Revenue</option>
+                <option value="family">Family</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="caseStatus">
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+                <option value="settled">Settled</option>
+              </select>
+            </div>
+            <div>
+              <label>Case Number</label>
+              <input id="caseNumber" />
+            </div>
+            <div>
+              <label>Court / Office Name</label>
+              <input id="caseCourtOffice" />
+            </div>
+            <div>
+              <label>Lawyer Name</label>
+              <input id="caseLawyerName" />
+            </div>
+            <div>
+              <label>Lawyer Phone</label>
+              <input id="caseLawyerPhone" data-format="phone" maxlength="12" placeholder="03XX-XXXXXXX" />
+            </div>
+            <div>
+              <label>Start Date</label>
+              <input id="caseStartDate" type="date" />
+            </div>
+            <div>
+              <label>Linked Project</label>
+              <select id="caseProjectId">
+                <option value="">No project</option>
+              </select>
+            </div>
+            <div>
+              <label>Linked Plot</label>
+              <select id="casePlotId">
+                <option value="">No plot</option>
+              </select>
+            </div>
+            <div>
+              <label>Linked Client</label>
+              <select id="caseClientId">
+                <option value="">No client</option>
+              </select>
+            </div>
+            <div>
+              <label>Linked Seller</label>
+              <select id="caseSellerId">
+                <option value="">No seller</option>
+              </select>
+            </div>
+            <div class="span-2">
+              <label>Notes</label>
+              <textarea id="caseNotes" rows="3"></textarea>
+            </div>
+            <div class="span-2 form-actions">
+              <button class="primary" type="submit">Save Case</button>
+              <button class="ghost" type="button" id="cancelCaseBtn">Cancel</button>
+            </div>
+          </form>
+          <p id="caseMessage" class="message"></p>
+        </div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <input id="caseSearch" placeholder="Search title, case no, lawyer, court, linked records..." />
+            <select id="caseStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="closed">Closed</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+              <option value="settled">Settled</option>
+            </select>
+            <select id="caseProjectFilter">
+              <option value="">All Projects</option>
+            </select>
+            <button id="refreshCasesBtn" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Case No</th>
+                  <th>Lawyer</th>
+                  <th>Linked Record</th>
+                  <th>Start Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="casesTableBody">
+                <tr><td colspan="8">Loading cases...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section id="page-daily-accounts" class="page placeholder"><h2>Daily Accounts</h2><p>Coming in a later build.</p></section>
       <section id="page-documents" class="page placeholder"><h2>Documents</h2><p>Coming in a later build.</p></section>
       <section id="page-reports" class="page placeholder"><h2>Reports</h2><p>Coming in a later build.</p></section>
@@ -474,7 +606,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=7v2"></script>
-  <script src="app.js?v=7v2"></script>
+  <script src="config.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

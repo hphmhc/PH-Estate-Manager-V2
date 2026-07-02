@@ -41,12 +41,12 @@ function setupSessionActivityTracking(){
   }, 60000);
 }
 
-const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[]};
+const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[],cases:[]};
 const pageTitles={dashboard:"Dashboard",projects:"Projects",plots:"Plots",clients:"Clients",sellers:"Sellers","sale-deals":"Sale Deals",agents:"Agents",cases:"Cases","daily-accounts":"Daily Accounts",documents:"Documents",reports:"Reports",users:"Users",settings:"Settings","import-backup":"Import / Backup"};
 function setMessage(m){$("#loginMessage").textContent=m||""}function showApp(){$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden")}function showLogin(){$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden")}
 function updateUserUI(){const email=state.user?.email||"User";const name=state.profile?.full_name||email;const role=state.profile?.role||"manager";$("#userName").textContent=name;$("#userRole").textContent=role;const isAdmin=role==="admin";$$('.admin-only').forEach(el=>el.style.display=isAdmin?"":"none");if(!isAdmin&&["users","settings","import-backup"].includes(state.activePage)){goPage("dashboard")}}
 async function loadProfile(){const {data,error}=await supabaseClient.from("profiles").select("*").eq("auth_user_id",state.user.id).maybeSingle();if(error||!data){console.warn("Profile table not ready or no profile. Using temporary admin profile.",error?.message||"");state.profile={full_name:state.user.email,email:state.user.email,role:"admin",status:"active"};return}state.profile=data}
-function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="sellers")loadSellers();if(page==="agents")loadAgents();if(page==="dashboard")refreshDashboardCounts()}
+function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="sellers")loadSellers();if(page==="agents")loadAgents();if(page==="cases")loadCases();if(page==="dashboard")refreshDashboardCounts()}
 function goPage(page,options={}){if(!pageTitles[page])page="dashboard";const previous=state.activePage||"dashboard";state.activePage=page;if(!options.fromBack&&previous!==page){state.pageHistory.push(page);sessionStorage.setItem("phv2PageHistory",JSON.stringify(state.pageHistory));if(!state.isNavigatingFromPop)history.pushState({phv2:true,page},"",`#${page}`)}renderPage(page)}
 function setupNavigation(){$$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{goPage(btn.dataset.page);$("#sidebar").classList.remove("open")}));$("#menuBtn").addEventListener('click',()=>$("#sidebar").classList.toggle("open"));window.addEventListener('popstate',()=>{if(!state.user)return;if((state.activePage||"dashboard")!=="dashboard"&&state.pageHistory.length>1){state.pageHistory.pop();const target=state.pageHistory[state.pageHistory.length-1]||"dashboard";state.isNavigatingFromPop=true;goPage(target,{fromBack:true});state.isNavigatingFromPop=false;history.pushState({phv2:true,page:target},"",`#${target}`);return}if((state.activePage||"dashboard")==="dashboard")signOut()})}
 async function signIn(email,password){setMessage("Logging in...");const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error){setMessage(error.message);return}state.user=data.user;markSessionActivity();await loadProfile();showApp();updateUserUI();const savedPage=sessionStorage.getItem("phv2ActivePage")||"dashboard";state.activePage=savedPage;state.pageHistory=["dashboard",savedPage].filter((v,i,a)=>i===0||v!==a[i-1]);renderPage(savedPage);history.replaceState({phv2:true,page:savedPage},"",`#${savedPage}`);setMessage("")}
@@ -126,6 +126,7 @@ function sortProjects(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.
 function sortClients(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
 function sortSellers(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
 function sortAgents(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
+function sortCases(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.case_title,b.case_title)||naturalCompare(a.case_number,b.case_number))}
 function sortPlots(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(getProjectName(a.project_id),getProjectName(b.project_id))||naturalCompare(a.plot_no,b.plot_no))}
 
 // -----------------------------
@@ -487,4 +488,197 @@ function setupAgentsModule(){
   if($('#agentStatusFilter')) $('#agentStatusFilter').onchange=renderAgents;
 }
 
-function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupInputFormatters();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();
+
+// -----------------------------
+// Stage 8: Cases module
+// -----------------------------
+async function ensureClientsLoaded(){
+  if(state.clients && state.clients.length) return state.clients;
+  const {data,error}=await supabaseClient.from('clients').select('*').order('name_en',{ascending:true});
+  if(error){console.warn('Could not load clients', error.message); state.clients=[]; return []}
+  state.clients=sortClients(data||[]);
+  return state.clients;
+}
+
+async function ensureSellersLoaded(){
+  if(state.sellers && state.sellers.length) return state.sellers;
+  const {data,error}=await supabaseClient.from('sellers').select('*').order('name_en',{ascending:true});
+  if(error){console.warn('Could not load sellers', error.message); state.sellers=[]; return []}
+  state.sellers=sortSellers(data||[]);
+  return state.sellers;
+}
+
+async function ensurePlotsLoaded(){
+  if(state.plots && state.plots.length) return state.plots;
+  await ensureProjectsLoaded();
+  const {data,error}=await supabaseClient.from('plots').select('*').order('plot_no',{ascending:true});
+  if(error){console.warn('Could not load plots', error.message); state.plots=[]; return []}
+  state.plots=sortPlots(data||[]);
+  return state.plots;
+}
+
+function getClientName(clientId){
+  const client=(state.clients||[]).find(c=>c.id===clientId);
+  return client?.name_en || '-';
+}
+
+function getSellerName(sellerId){
+  const seller=(state.sellers||[]).find(s=>s.id===sellerId);
+  return seller?.name_en || '-';
+}
+
+function getPlotLabel(plotId){
+  const plot=(state.plots||[]).find(p=>p.id===plotId);
+  if(!plot) return '-';
+  return `${getProjectName(plot.project_id)} / ${plot.plot_no || ''}`.trim();
+}
+
+async function populateCaseSelects(){
+  await Promise.all([ensureProjectsLoaded(), ensurePlotsLoaded(), ensureClientsLoaded(), ensureSellersLoaded()]);
+  const projectOptions='<option value="">No project</option>' + sortProjects(state.projects||[]).map(p=>`<option value="${p.id}">${escapeHtml(p.name||'')}</option>`).join('');
+  const projectFilterOptions='<option value="">All Projects</option>' + sortProjects(state.projects||[]).map(p=>`<option value="${p.id}">${escapeHtml(p.name||'')}</option>`).join('');
+  const plotOptions='<option value="">No plot</option>' + sortPlots(state.plots||[]).map(p=>`<option value="${p.id}">${escapeHtml(getPlotLabel(p.id))}</option>`).join('');
+  const clientOptions='<option value="">No client</option>' + sortClients(state.clients||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.name_en||'')}</option>`).join('');
+  const sellerOptions='<option value="">No seller</option>' + sortSellers(state.sellers||[]).map(s=>`<option value="${s.id}">${escapeHtml(s.name_en||'')}</option>`).join('');
+  if($('#caseProjectId')) $('#caseProjectId').innerHTML=projectOptions;
+  if($('#caseProjectFilter')) $('#caseProjectFilter').innerHTML=projectFilterOptions;
+  if($('#casePlotId')) $('#casePlotId').innerHTML=plotOptions;
+  if($('#caseClientId')) $('#caseClientId').innerHTML=clientOptions;
+  if($('#caseSellerId')) $('#caseSellerId').innerHTML=sellerOptions;
+}
+
+function caseFormElements(){
+  return {
+    panel:$('#caseFormPanel'),form:$('#caseForm'),title:$('#caseFormTitle'),id:$('#caseId'),
+    caseTitle:$('#caseTitle'),caseType:$('#caseType'),caseStatus:$('#caseStatus'),caseNumber:$('#caseNumber'),
+    courtOffice:$('#caseCourtOffice'),lawyerName:$('#caseLawyerName'),lawyerPhone:$('#caseLawyerPhone'),
+    startDate:$('#caseStartDate'),projectId:$('#caseProjectId'),plotId:$('#casePlotId'),clientId:$('#caseClientId'),
+    sellerId:$('#caseSellerId'),notes:$('#caseNotes'),message:$('#caseMessage')
+  };
+}
+
+async function showCaseForm(caseRecord=null){
+  await populateCaseSelects();
+  const f=caseFormElements();
+  f.panel.classList.remove('hidden');
+  f.title.textContent=caseRecord?'Edit Case':'Add Case';
+  f.id.value=caseRecord?.id||'';
+  f.caseTitle.value=caseRecord?.case_title||'';
+  f.caseType.value=caseRecord?.case_type||'property';
+  f.caseStatus.value=caseRecord?.case_status||'active';
+  f.caseNumber.value=caseRecord?.case_number||'';
+  f.courtOffice.value=caseRecord?.court_or_office_name||'';
+  f.lawyerName.value=caseRecord?.lawyer_name||'';
+  f.lawyerPhone.value=formatPhone(caseRecord?.lawyer_phone||'');
+  f.startDate.value=caseRecord?.start_date||'';
+  f.projectId.value=caseRecord?.linked_project_id||'';
+  f.plotId.value=caseRecord?.linked_plot_id||'';
+  f.clientId.value=caseRecord?.linked_client_id||'';
+  f.sellerId.value=caseRecord?.linked_seller_id||'';
+  f.notes.value=caseRecord?.notes||'';
+  f.message.textContent='';
+  f.caseTitle.focus();
+}
+
+function hideCaseForm(){
+  const f=caseFormElements();
+  f.form.reset();
+  f.id.value='';
+  f.panel.classList.add('hidden');
+  f.message.textContent='';
+}
+
+async function loadCases(){
+  const tbody=$('#casesTableBody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="8">Loading cases...</td></tr>';
+  await populateCaseSelects();
+  const {data,error}=await supabaseClient.from('cases').select('*').order('case_title',{ascending:true});
+  if(error){tbody.innerHTML=`<tr><td colspan="8">Error: ${escapeHtml(error.message)}</td></tr>`;return}
+  state.cases=sortCases(data||[]);
+  renderCases();
+}
+
+function renderCases(){
+  const tbody=$('#casesTableBody');
+  if(!tbody) return;
+  const q=($('#caseSearch')?.value||'').toLowerCase().trim();
+  const statusFilter=$('#caseStatusFilter')?.value||'';
+  const projectFilter=$('#caseProjectFilter')?.value||'';
+  const rows=sortCases(state.cases||[]).filter(c=>{
+    const linked=[getProjectName(c.linked_project_id), getPlotLabel(c.linked_plot_id), getClientName(c.linked_client_id), getSellerName(c.linked_seller_id)].join(' ');
+    const haystack=[c.case_title,c.case_type,c.case_status,c.case_number,c.court_or_office_name,c.lawyer_name,c.lawyer_phone,linked,c.notes].join(' ').toLowerCase();
+    return (!q||haystack.includes(q)) && (!statusFilter||c.case_status===statusFilter) && (!projectFilter||c.linked_project_id===projectFilter);
+  });
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="8">No cases found.</td></tr>';return}
+  tbody.innerHTML=rows.map(c=>{
+    const linkedParts=[];
+    if(c.linked_project_id) linkedParts.push(getProjectName(c.linked_project_id));
+    if(c.linked_plot_id) linkedParts.push(getPlotLabel(c.linked_plot_id));
+    if(c.linked_client_id) linkedParts.push('Client: '+getClientName(c.linked_client_id));
+    if(c.linked_seller_id) linkedParts.push('Seller: '+getSellerName(c.linked_seller_id));
+    return `<tr>
+      <td data-label="Title"><strong>${escapeHtml(c.case_title||'')}</strong><br><small>${escapeHtml(c.court_or_office_name||'-')}</small></td>
+      <td data-label="Type">${escapeHtml(c.case_type||'-')}</td>
+      <td data-label="Status"><span class="status-badge ${escapeHtml(c.case_status||'')}">${escapeHtml(c.case_status||'')}</span></td>
+      <td data-label="Case No">${escapeHtml(c.case_number||'-')}</td>
+      <td data-label="Lawyer">${escapeHtml(c.lawyer_name||'-')}${c.lawyer_phone?`<br><small>${escapeHtml(c.lawyer_phone)}</small>`:''}</td>
+      <td data-label="Linked Record">${escapeHtml(linkedParts.join(' | ')||'-')}</td>
+      <td data-label="Start Date">${escapeHtml(c.start_date||'-')}</td>
+      <td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-case="${c.id}">Edit</button><button class="danger-btn" data-delete-case="${c.id}">Delete</button></div></td>
+    </tr>`;
+  }).join('');
+  $$('[data-edit-case]').forEach(btn=>btn.onclick=()=>showCaseForm((state.cases||[]).find(c=>c.id===btn.dataset.editCase)));
+  $$('[data-delete-case]').forEach(btn=>btn.onclick=()=>deleteCase(btn.dataset.deleteCase));
+}
+
+async function saveCase(e){
+  e.preventDefault();
+  const f=caseFormElements();
+  const payload={
+    case_title:f.caseTitle.value.trim(),
+    case_type:f.caseType.value||'property',
+    case_status:f.caseStatus.value||'active',
+    case_number:f.caseNumber.value.trim()||null,
+    court_or_office_name:f.courtOffice.value.trim()||null,
+    lawyer_name:f.lawyerName.value.trim()||null,
+    lawyer_phone:formatPhone(f.lawyerPhone.value.trim())||null,
+    linked_project_id:f.projectId.value||null,
+    linked_plot_id:f.plotId.value||null,
+    linked_client_id:f.clientId.value||null,
+    linked_seller_id:f.sellerId.value||null,
+    start_date:f.startDate.value||null,
+    notes:f.notes.value.trim()||null
+  };
+  if(!payload.case_title){f.message.textContent='Case title is required.';return}
+  f.message.textContent='Saving...';
+  let result;
+  if(f.id.value){
+    result=await supabaseClient.from('cases').update(payload).eq('id',f.id.value);
+  }else{
+    payload.created_by=state.profile?.id||null;
+    result=await supabaseClient.from('cases').insert(payload);
+  }
+  if(result.error){f.message.textContent=result.error.message;return}
+  hideCaseForm();
+  await loadCases();
+}
+
+async function deleteCase(id){
+  if(!confirm('Delete this case? Only do this for test records.')) return;
+  const {error}=await supabaseClient.from('cases').delete().eq('id',id);
+  if(error){alert(error.message);return}
+  await loadCases();
+}
+
+function setupCasesModule(){
+  if($('#addCaseBtn')) $('#addCaseBtn').onclick=()=>showCaseForm();
+  if($('#cancelCaseBtn')) $('#cancelCaseBtn').onclick=hideCaseForm;
+  if($('#caseForm')) $('#caseForm').onsubmit=saveCase;
+  if($('#refreshCasesBtn')) $('#refreshCasesBtn').onclick=loadCases;
+  if($('#caseSearch')) $('#caseSearch').oninput=renderCases;
+  if($('#caseStatusFilter')) $('#caseStatusFilter').onchange=renderCases;
+  if($('#caseProjectFilter')) $('#caseProjectFilter').onchange=renderCases;
+}
+
+function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupCasesModule();setupInputFormatters();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();
