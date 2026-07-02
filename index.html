@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 8</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 9</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -73,7 +73,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 8 Status</h2><p>Projects, Plots, Clients, Sellers, Agents, and Cases modules are active.</p></div>
+        <div class="panel"><h2>Stage 9 Status</h2><p>Projects, Plots, Clients, Sellers, Agents, Cases, and Daily Accounts modules are active.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -597,7 +597,20 @@
           </div>
         </div>
       </section>
-      <section id="page-daily-accounts" class="page placeholder"><h2>Daily Accounts</h2><p>Coming in a later build.</p></section>
+      <section id="page-daily-accounts" class="page">
+        <div class="page-actions"><div><h2>Daily Accounts</h2><p class="muted">Central money ledger. Entries are saved once and shown in reports/registers later.</p></div><button id="addLedgerBtn" class="primary">+ Add Entry</button></div>
+        <div class="cards mini-cards"><div class="card"><p>Money In</p><h2 id="ledgerMoneyIn">Rs. 0</h2><small>Active income entries</small></div><div class="card"><p>Money Out</p><h2 id="ledgerMoneyOut">Rs. 0</h2><small>Active expense entries</small></div><div class="card"><p>Non Cash</p><h2 id="ledgerNonCash">Rs. 0</h2><small>Exchange / adjustments</small></div><div class="card"><p>Record Only</p><h2 id="ledgerRecordOnly">Rs. 0</h2><small>Information-only entries</small></div></div>
+        <div id="ledgerFormPanel" class="panel hidden"><h2 id="ledgerFormTitle">Add Daily Account Entry</h2><form id="ledgerForm" class="form-grid"><input type="hidden" id="ledgerId" />
+          <div><label>Entry Date *</label><input id="ledgerEntryDate" type="date" required /></div><div><label>Entry No</label><input id="ledgerEntryNo" placeholder="Optional, e.g. DA-2026-0001" /></div>
+          <div><label>Direction *</label><select id="ledgerDirection" required><option value="money_in">Money In</option><option value="money_out">Money Out</option><option value="non_cash">Non Cash</option><option value="record_only">Record Only</option></select></div>
+          <div><label>Amount *</label><input id="ledgerAmount" type="number" step="0.01" min="0" required /></div><div><label>Payment Method</label><select id="ledgerPaymentMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option><option value="other">Other</option></select></div>
+          <div><label>Category</label><select id="ledgerCategoryId"><option value="">Select category</option></select></div><div><label>Register / Book</label><select id="ledgerRegisterId"><option value="">Select register</option></select></div>
+          <div><label>Project</label><select id="ledgerProjectId"><option value="">No project</option></select></div><div><label>Plot</label><select id="ledgerPlotId"><option value="">No plot</option></select></div><div><label>Client</label><select id="ledgerClientId"><option value="">No client</option></select></div><div><label>Seller</label><select id="ledgerSellerId"><option value="">No seller</option></select></div><div><label>Agent</label><select id="ledgerAgentId"><option value="">No agent</option></select></div><div><label>Case</label><select id="ledgerCaseId"><option value="">No case</option></select></div>
+          <div><label>Receipt No</label><input id="ledgerReceiptNo" /></div><div><label>Voucher No</label><input id="ledgerVoucherNo" /></div><div class="span-2"><label>Description *</label><textarea id="ledgerDescription" rows="3" required></textarea></div>
+          <div class="span-2 form-actions"><button class="primary" type="submit">Save Entry</button><button class="ghost" type="button" id="cancelLedgerBtn">Cancel</button></div></form><p id="ledgerMessage" class="message"></p></div>
+        <div class="panel"><div class="table-tools"><input id="ledgerSearch" placeholder="Search description, entry no, receipt, linked records..." /><select id="ledgerDirectionFilter"><option value="">All Directions</option><option value="money_in">Money In</option><option value="money_out">Money Out</option><option value="non_cash">Non Cash</option><option value="record_only">Record Only</option></select><select id="ledgerRegisterFilter"><option value="">All Registers</option></select><select id="ledgerProjectFilter"><option value="">All Projects</option></select><button id="refreshLedgerBtn" class="ghost">Refresh</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Entry No</th><th>Register</th><th>Category</th><th>Description</th><th>Money In</th><th>Money Out</th><th>Method</th><th>Linked</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ledgerTableBody"><tr><td colspan="11">Loading entries...</td></tr></tbody></table></div></div>
+      </section>
       <section id="page-documents" class="page placeholder"><h2>Documents</h2><p>Coming in a later build.</p></section>
       <section id="page-reports" class="page placeholder"><h2>Reports</h2><p>Coming in a later build.</p></section>
       <section id="page-users" class="page placeholder admin-page"><h2>Users</h2><p>Admin-only page placeholder.</p></section>
@@ -606,7 +619,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="config.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
