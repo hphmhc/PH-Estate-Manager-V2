@@ -1,6 +1,46 @@
 const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
 const supabaseClient=window.supabase.createClient(PH_CONFIG.supabaseUrl,PH_CONFIG.supabasePublishableKey);
-const SESSION_TIMEOUT_MS=8*60*60*1000;const SESSION_LAST_ACTIVITY_KEY="phv2LastActivityAt";function markSessionActivity(){if(state?.user)localStorage.setItem(SESSION_LAST_ACTIVITY_KEY,String(Date.now()))}function isSessionExpired(){const t=Number(localStorage.getItem(SESSION_LAST_ACTIVITY_KEY)||0);return !!t&&Date.now()-t>SESSION_TIMEOUT_MS}async function enforceSessionTimeout(){if(isSessionExpired()){await supabaseClient.auth.signOut();localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY);alert("Your login session expired because the app was not used for a long time. Please log in again.");showLogin();return true}return false}function setupSessionActivityTracking(){["click","keydown","touchstart","mousemove"].forEach(e=>window.addEventListener(e,markSessionActivity,{passive:true}));setInterval(async()=>{if(state?.user&&await enforceSessionTimeout()){state.user=null;state.profile=null;state.activePage="dashboard"}},60000)}
+const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
+const SESSION_LAST_ACTIVITY_KEY = "phv2LastActivityAt";
+function markSessionActivity(){
+  if(state && state.user){
+    localStorage.setItem(SESSION_LAST_ACTIVITY_KEY, String(Date.now()));
+  }
+}
+
+function isSessionExpired(){
+  const lastActivity = Number(localStorage.getItem(SESSION_LAST_ACTIVITY_KEY) || 0);
+  if(!lastActivity) return false;
+  return Date.now() - lastActivity > SESSION_TIMEOUT_MS;
+}
+
+async function enforceSessionTimeout(){
+  if(isSessionExpired()){
+    await supabaseClient.auth.signOut();
+    localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY);
+    showLogin();
+    alert("Your login session expired because the app was not used for a long time. Please log in again.");
+    return true;
+  }
+  return false;
+}
+
+function setupSessionActivityTracking(){
+  ["click","keydown","touchstart","mousemove"].forEach((eventName)=>{
+    window.addEventListener(eventName, markSessionActivity, { passive: true });
+  });
+  setInterval(async ()=>{
+    if(state.user){
+      const expired = await enforceSessionTimeout();
+      if(expired){
+        state.user = null;
+        state.profile = null;
+        state.activePage = "dashboard";
+      }
+    }
+  }, 60000);
+}
+
 const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[]};
 const pageTitles={dashboard:"Dashboard",projects:"Projects",plots:"Plots",clients:"Clients",sellers:"Sellers","sale-deals":"Sale Deals",agents:"Agents",cases:"Cases","daily-accounts":"Daily Accounts",documents:"Documents",reports:"Reports",users:"Users",settings:"Settings","import-backup":"Import / Backup"};
 function setMessage(m){$("#loginMessage").textContent=m||""}function showApp(){$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden")}function showLogin(){$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden")}
@@ -329,16 +369,122 @@ async function saveSeller(e){e.preventDefault();const f=sellerFormElements();con
 async function deleteSeller(id){if(!confirm('Delete this seller? Only do this for test records.'))return;const {error}=await supabaseClient.from('sellers').delete().eq('id',id);if(error){alert(error.message);return}await loadSellers()}
 function setupSellersModule(){if($('#addSellerBtn'))$('#addSellerBtn').onclick=()=>showSellerForm();if($('#cancelSellerBtn'))$('#cancelSellerBtn').onclick=hideSellerForm;if($('#sellerForm'))$('#sellerForm').onsubmit=saveSeller;if($('#refreshSellersBtn'))$('#refreshSellersBtn').onclick=loadSellers;if($('#sellerSearch'))$('#sellerSearch').oninput=renderSellers}
 
+
 // -----------------------------
-// Stage 7: Agents module
+// Stage 7 Verified: Agents module
 // -----------------------------
-function agentFormElements(){return {panel:$('#agentFormPanel'),form:$('#agentForm'),title:$('#agentFormTitle'),id:$('#agentId'),nameEn:$('#agentNameEn'),nameUr:$('#agentNameUr'),fatherEn:$('#agentFatherEn'),fatherUr:$('#agentFatherUr'),cnic:$('#agentCnic'),phone:$('#agentPhone'),status:$('#agentStatus'),addressEn:$('#agentAddressEn'),addressUr:$('#agentAddressUr'),notes:$('#agentNotes'),message:$('#agentMessage')}}
-function showAgentForm(agent=null){const f=agentFormElements();f.panel.classList.remove('hidden');f.title.textContent=agent?'Edit Agent':'Add Agent';f.id.value=agent?.id||'';f.nameEn.value=agent?.name_en||'';f.nameUr.value=agent?.name_ur||'';f.fatherEn.value=agent?.father_en||'';f.fatherUr.value=agent?.father_ur||'';f.cnic.value=formatCnic(agent?.cnic||'');f.phone.value=formatPhone(agent?.phone||'');f.status.value=agent?.status||'active';f.addressEn.value=agent?.address_en||'';f.addressUr.value=agent?.address_ur||'';f.notes.value=agent?.notes||'';f.message.textContent='';f.nameEn.focus()}
-function hideAgentForm(){const f=agentFormElements();f.form.reset();f.id.value='';f.panel.classList.add('hidden');f.message.textContent=''}
-async function loadAgents(){const tbody=$('#agentsTableBody');if(!tbody)return;tbody.innerHTML='<tr><td colspan="7">Loading agents...</td></tr>';const {data,error}=await supabaseClient.from('agents').select('*').order('name_en',{ascending:true});if(error){tbody.innerHTML=`<tr><td colspan="7">Error: ${escapeHtml(error.message)}</td></tr>`;return}state.agents=sortAgents(data||[]);renderAgents()}
-function renderAgents(){const tbody=$('#agentsTableBody');if(!tbody)return;const q=($('#agentSearch')?.value||'').toLowerCase().trim();const sf=$('#agentStatusFilter')?.value||'';const rows=sortAgents(state.agents||[]).filter(a=>{const h=[a.name_en,a.name_ur,a.father_en,a.father_ur,a.cnic,a.phone,a.address_en,a.address_ur,a.status,a.notes].join(' ').toLowerCase();return(!q||h.includes(q))&&(!sf||a.status===sf)});if(!rows.length){tbody.innerHTML='<tr><td colspan="7">No agents found.</td></tr>';return}tbody.innerHTML=rows.map(a=>`<tr><td data-label="Name"><strong>${escapeHtml(a.name_en||'')}</strong>${a.name_ur?`<br><small dir="rtl">${escapeHtml(a.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(a.father_en||'-')}${a.father_ur?`<br><small dir="rtl">${escapeHtml(a.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(a.cnic||'-')}</td><td data-label="Phone">${escapeHtml(a.phone||'-')}</td><td data-label="Status"><span class="status-badge ${escapeHtml(a.status||'')}">${escapeHtml(a.status||'')}</span></td><td data-label="Address">${escapeHtml(a.address_en||'-')}${a.address_ur?`<br><small dir="rtl">${escapeHtml(a.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-agent="${a.id}">Edit</button><button class="danger-btn" data-delete-agent="${a.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-agent]').forEach(btn=>btn.onclick=()=>showAgentForm((state.agents||[]).find(a=>a.id===btn.dataset.editAgent)));$$('[data-delete-agent]').forEach(btn=>btn.onclick=()=>deleteAgent(btn.dataset.deleteAgent))}
-async function saveAgent(e){e.preventDefault();const f=agentFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:formatCnic(f.cnic.value.trim())||null,phone:formatPhone(f.phone.value.trim())||null,status:f.status.value||'active',address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Agent name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('agents').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('agents').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideAgentForm();await loadAgents()}
-async function deleteAgent(id){if(!confirm('Delete this agent? Only do this for test records.'))return;const {error}=await supabaseClient.from('agents').delete().eq('id',id);if(error){alert(error.message);return}await loadAgents()}
-function setupAgentsModule(){if($('#addAgentBtn'))$('#addAgentBtn').onclick=()=>showAgentForm();if($('#cancelAgentBtn'))$('#cancelAgentBtn').onclick=hideAgentForm;if($('#agentForm'))$('#agentForm').onsubmit=saveAgent;if($('#refreshAgentsBtn'))$('#refreshAgentsBtn').onclick=loadAgents;if($('#agentSearch'))$('#agentSearch').oninput=renderAgents;if($('#agentStatusFilter'))$('#agentStatusFilter').onchange=renderAgents}
+function agentFormElements(){
+  return {
+    panel:$('#agentFormPanel'),form:$('#agentForm'),title:$('#agentFormTitle'),id:$('#agentId'),
+    nameEn:$('#agentNameEn'),nameUr:$('#agentNameUr'),fatherEn:$('#agentFatherEn'),fatherUr:$('#agentFatherUr'),
+    cnic:$('#agentCnic'),phone:$('#agentPhone'),status:$('#agentStatus'),
+    addressEn:$('#agentAddressEn'),addressUr:$('#agentAddressUr'),notes:$('#agentNotes'),message:$('#agentMessage')
+  };
+}
+
+function showAgentForm(agent=null){
+  const f=agentFormElements();
+  f.panel.classList.remove('hidden');
+  f.title.textContent=agent?'Edit Agent':'Add Agent';
+  f.id.value=agent?.id||'';
+  f.nameEn.value=agent?.name_en||'';
+  f.nameUr.value=agent?.name_ur||'';
+  f.fatherEn.value=agent?.father_en||'';
+  f.fatherUr.value=agent?.father_ur||'';
+  f.cnic.value=formatCnic(agent?.cnic||'');
+  f.phone.value=formatPhone(agent?.phone||'');
+  f.status.value=agent?.status||'active';
+  f.addressEn.value=agent?.address_en||'';
+  f.addressUr.value=agent?.address_ur||'';
+  f.notes.value=agent?.notes||'';
+  f.message.textContent='';
+  f.nameEn.focus();
+}
+
+function hideAgentForm(){
+  const f=agentFormElements();
+  f.form.reset();
+  f.id.value='';
+  f.panel.classList.add('hidden');
+  f.message.textContent='';
+}
+
+async function loadAgents(){
+  const tbody=$('#agentsTableBody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="7">Loading agents...</td></tr>';
+  const {data,error}=await supabaseClient.from('agents').select('*').order('name_en',{ascending:true});
+  if(error){tbody.innerHTML=`<tr><td colspan="7">Error: ${escapeHtml(error.message)}</td></tr>`;return}
+  state.agents=sortAgents(data||[]);
+  renderAgents();
+}
+
+function renderAgents(){
+  const tbody=$('#agentsTableBody');
+  if(!tbody) return;
+  const q=($('#agentSearch')?.value||'').toLowerCase().trim();
+  const statusFilter=$('#agentStatusFilter')?.value||'';
+  const rows=sortAgents(state.agents||[]).filter(a=>{
+    const haystack=[a.name_en,a.name_ur,a.father_en,a.father_ur,a.cnic,a.phone,a.address_en,a.address_ur,a.status,a.notes].join(' ').toLowerCase();
+    return (!q||haystack.includes(q)) && (!statusFilter||a.status===statusFilter);
+  });
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="7">No agents found.</td></tr>';return}
+  tbody.innerHTML=rows.map(a=>`<tr>
+    <td data-label="Name"><strong>${escapeHtml(a.name_en||'')}</strong>${a.name_ur?`<br><small dir="rtl">${escapeHtml(a.name_ur)}</small>`:''}</td>
+    <td data-label="Father Name">${escapeHtml(a.father_en||'-')}${a.father_ur?`<br><small dir="rtl">${escapeHtml(a.father_ur)}</small>`:''}</td>
+    <td data-label="CNIC">${escapeHtml(a.cnic||'-')}</td>
+    <td data-label="Phone">${escapeHtml(a.phone||'-')}</td>
+    <td data-label="Status"><span class="status-badge ${escapeHtml(a.status||'')}">${escapeHtml(a.status||'')}</span></td>
+    <td data-label="Address">${escapeHtml(a.address_en||'-')}${a.address_ur?`<br><small dir="rtl">${escapeHtml(a.address_ur)}</small>`:''}</td>
+    <td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-agent="${a.id}">Edit</button><button class="danger-btn" data-delete-agent="${a.id}">Delete</button></div></td>
+  </tr>`).join('');
+  $$('[data-edit-agent]').forEach(btn=>btn.onclick=()=>showAgentForm((state.agents||[]).find(a=>a.id===btn.dataset.editAgent)));
+  $$('[data-delete-agent]').forEach(btn=>btn.onclick=()=>deleteAgent(btn.dataset.deleteAgent));
+}
+
+async function saveAgent(e){
+  e.preventDefault();
+  const f=agentFormElements();
+  const payload={
+    name_en:f.nameEn.value.trim(),
+    name_ur:f.nameUr.value.trim()||null,
+    father_en:f.fatherEn.value.trim()||null,
+    father_ur:f.fatherUr.value.trim()||null,
+    cnic:formatCnic(f.cnic.value.trim())||null,
+    phone:formatPhone(f.phone.value.trim())||null,
+    status:f.status.value||'active',
+    address_en:f.addressEn.value.trim()||null,
+    address_ur:f.addressUr.value.trim()||null,
+    notes:f.notes.value.trim()||null
+  };
+  if(!payload.name_en){f.message.textContent='Agent name is required.';return}
+  f.message.textContent='Saving...';
+  let result;
+  if(f.id.value){
+    result=await supabaseClient.from('agents').update(payload).eq('id',f.id.value);
+  }else{
+    payload.created_by=state.profile?.id||null;
+    result=await supabaseClient.from('agents').insert(payload);
+  }
+  if(result.error){f.message.textContent=result.error.message;return}
+  hideAgentForm();
+  await loadAgents();
+}
+
+async function deleteAgent(id){
+  if(!confirm('Delete this agent? Only do this for test records.')) return;
+  const {error}=await supabaseClient.from('agents').delete().eq('id',id);
+  if(error){alert(error.message);return}
+  await loadAgents();
+}
+
+function setupAgentsModule(){
+  if($('#addAgentBtn')) $('#addAgentBtn').onclick=()=>showAgentForm();
+  if($('#cancelAgentBtn')) $('#cancelAgentBtn').onclick=hideAgentForm;
+  if($('#agentForm')) $('#agentForm').onsubmit=saveAgent;
+  if($('#refreshAgentsBtn')) $('#refreshAgentsBtn').onclick=loadAgents;
+  if($('#agentSearch')) $('#agentSearch').oninput=renderAgents;
+  if($('#agentStatusFilter')) $('#agentStatusFilter').onchange=renderAgents;
+}
 
 function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupInputFormatters();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();

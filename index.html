@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=7v2" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 7</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 7 Verified</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -73,7 +73,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 7 Status</h2><p>Projects, Plots, Clients, Sellers, and Agents modules are active. Login now expires after extended inactivity.</p></div>
+        <div class="panel"><h2>Stage 7 Verified Status</h2><p>Projects, Plots, Clients, Sellers, and Agents modules are active. Login expires after extended inactivity.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -361,27 +361,108 @@
       </section>
       <section id="page-sale-deals" class="page placeholder"><h2>Sale Deals</h2><p>Coming in a later build.</p></section>
       <section id="page-agents" class="page">
-        <div class="page-actions"><div><h2>Agents</h2><p class="muted">Add and manage agents. Commission agreements will connect later.</p></div><button id="addAgentBtn" class="primary">+ Add Agent</button></div>
+        <div class="page-actions">
+          <div>
+            <h2>Agents</h2>
+            <p class="muted">Add and manage agents. Commission agreements will connect later.</p>
+          </div>
+          <button id="addAgentBtn" class="primary">+ Add Agent</button>
+        </div>
+
         <div id="agentFormPanel" class="panel hidden">
           <h2 id="agentFormTitle">Add Agent</h2>
           <form id="agentForm" class="form-grid">
             <input type="hidden" id="agentId" />
-            <div><label>Agent Name English *</label><input id="agentNameEn" required /></div>
-            <div><label>Agent Name Urdu</label><div class="input-with-button"><input id="agentNameUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="agentNameEn" data-translate-to="agentNameUr">Auto Urdu</button></div></div>
-            <div><label>Father Name English</label><input id="agentFatherEn" /></div>
-            <div><label>Father Name Urdu</label><div class="input-with-button"><input id="agentFatherUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="agentFatherEn" data-translate-to="agentFatherUr">Auto Urdu</button></div></div>
-            <div><label>CNIC</label><input id="agentCnic" data-format="cnic" maxlength="15" placeholder="XXXXX-XXXXXXX-X" /></div>
-            <div><label>Phone</label><input id="agentPhone" data-format="phone" maxlength="12" placeholder="03XX-XXXXXXX" /></div>
-            <div><label>Status</label><select id="agentStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+            <div>
+              <label>Agent Name English *</label>
+              <input id="agentNameEn" required placeholder="Example: Ayaz Khan" />
+            </div>
+            <div>
+              <label>Agent Name Urdu</label>
+              <div class="input-with-button">
+                <input id="agentNameUr" dir="rtl" />
+                <button type="button" class="mini-btn" data-translate-from="agentNameEn" data-translate-to="agentNameUr">Auto Urdu</button>
+              </div>
+            </div>
+            <div>
+              <label>Father Name English</label>
+              <input id="agentFatherEn" />
+            </div>
+            <div>
+              <label>Father Name Urdu</label>
+              <div class="input-with-button">
+                <input id="agentFatherUr" dir="rtl" />
+                <button type="button" class="mini-btn" data-translate-from="agentFatherEn" data-translate-to="agentFatherUr">Auto Urdu</button>
+              </div>
+            </div>
+            <div>
+              <label>CNIC</label>
+              <input id="agentCnic" data-format="cnic" placeholder="XXXXX-XXXXXXX-X" maxlength="15" />
+            </div>
+            <div>
+              <label>Phone</label>
+              <input id="agentPhone" data-format="phone" placeholder="03XX-XXXXXXX" maxlength="12" />
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="agentStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
             <div></div>
-            <div class="span-2"><label>Address English</label><textarea id="agentAddressEn" rows="2"></textarea></div>
-            <div class="span-2"><label>Address Urdu</label><div class="input-with-button vertical"><textarea id="agentAddressUr" rows="2" dir="rtl"></textarea><button type="button" class="mini-btn" data-translate-from="agentAddressEn" data-translate-to="agentAddressUr">Auto Urdu</button></div></div>
-            <div class="span-2"><label>Notes</label><textarea id="agentNotes" rows="3"></textarea></div>
-            <div class="span-2 form-actions"><button class="primary" type="submit">Save Agent</button><button class="ghost" type="button" id="cancelAgentBtn">Cancel</button></div>
-          </form><p id="agentMessage" class="message"></p>
+            <div class="span-2">
+              <label>Address English</label>
+              <textarea id="agentAddressEn" rows="2"></textarea>
+            </div>
+            <div class="span-2">
+              <label>Address Urdu</label>
+              <div class="input-with-button vertical">
+                <textarea id="agentAddressUr" rows="2" dir="rtl"></textarea>
+                <button type="button" class="mini-btn" data-translate-from="agentAddressEn" data-translate-to="agentAddressUr">Auto Urdu</button>
+              </div>
+            </div>
+            <div class="span-2">
+              <label>Notes</label>
+              <textarea id="agentNotes" rows="3"></textarea>
+            </div>
+            <div class="span-2 form-actions">
+              <button class="primary" type="submit">Save Agent</button>
+              <button class="ghost" type="button" id="cancelAgentBtn">Cancel</button>
+            </div>
+          </form>
+          <p id="agentMessage" class="message"></p>
         </div>
-        <div class="panel"><div class="table-tools"><input id="agentSearch" placeholder="Search name, father name, CNIC, phone, address..." /><select id="agentStatusFilter"><option value="">All Statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select><button id="refreshAgentsBtn" class="ghost">Refresh</button></div>
-          <div class="table-wrap"><table><thead><tr><th>Name</th><th>Father Name</th><th>CNIC</th><th>Phone</th><th>Status</th><th>Address</th><th>Actions</th></tr></thead><tbody id="agentsTableBody"><tr><td colspan="7">Loading agents...</td></tr></tbody></table></div></div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <input id="agentSearch" placeholder="Search name, father name, CNIC, phone, address..." />
+            <select id="agentStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <button id="refreshAgentsBtn" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Father Name</th>
+                  <th>CNIC</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>Address</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="agentsTableBody">
+                <tr><td colspan="7">Loading agents...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
       <section id="page-cases" class="page placeholder"><h2>Cases</h2><p>Coming in a later build.</p></section>
       <section id="page-daily-accounts" class="page placeholder"><h2>Daily Accounts</h2><p>Coming in a later build.</p></section>
@@ -393,7 +474,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="config.js?v=7v2"></script>
+  <script src="app.js?v=7v2"></script>
 </body>
 </html>
