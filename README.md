@@ -1,22 +1,20 @@
 # PH Estate Manager V2
 
-## Stage 12
+## Stage 13
 
-Adds:
-- Dashboard receivables calculation
-- Global money comma formatting for current money fields
-- New Sale Entry remaining receivable preview
+Adds client page payment and dues workflow.
 
-Receivables formula in this stage:
-Receivables = total active/non-cancelled sale deal plot prices - active allocated payments
+New:
+- Client row action buttons: Payments and Dues
+- Client Account modal
+- View client sale value, paid amount, remaining amount, unpaid dues
+- Add client payment from Client page
+- Payment still saves once into central ledger
+- Payment allocation links ledger entry to client/deal/plot
+- Void client payment from Client page
+- Add client due from Client page
+- Waive client due from Client page
+- Dashboard receivables now include unpaid dues
 
-Money behavior:
-- User sees commas while typing, e.g. 2500000 becomes 2,500,000
-- App saves clean numeric value to Supabase
-- Applies to current ledger amount, sale price, and token/payment amount fields
-
-Kept:
-- New Sale Entry workflow
-- Central ledger system
-- One ledger entry per token/payment
-- One payment allocation linking payment to client/plot/deal
+Rule:
+Client-related entries can be started from Client page, but money is still stored once in the centralized ledger.

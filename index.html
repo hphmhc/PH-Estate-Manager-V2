@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 12</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 13</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -84,7 +84,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 12 Status</h2><p>Receivables calculation and global money comma formatting added.</p></div>
+        <div class="panel"><h2>Stage 13 Status</h2><p>Client payments and dues workflow added. Client-related money can now be entered from the Client page while still saving into the central ledger.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -644,6 +644,146 @@
       <section id="page-settings" class="page placeholder admin-page"><h2>Settings</h2><p>Admin-only page placeholder.</p></section>
       <section id="page-import-backup" class="page placeholder admin-page"><h2>Import / Backup</h2><p>Admin-only page placeholder.</p></section>
 
+
+      <div id="clientFinanceOverlay" class="modal-overlay hidden">
+        <div class="modal-card large-modal">
+          <div class="modal-header">
+            <div>
+              <h2 id="clientFinanceTitle">Client Account</h2>
+              <p id="clientFinanceSubtitle" class="muted">Payments and dues connected to this client.</p>
+            </div>
+            <button id="closeClientFinanceBtn" class="icon-btn" type="button">×</button>
+          </div>
+
+          <div class="client-finance-summary">
+            <div class="card"><p>Total Sale Value</p><h2 id="cfTotalSale">Rs. 0</h2><small>Linked sale deals</small></div>
+            <div class="card"><p>Paid</p><h2 id="cfTotalPaid">Rs. 0</h2><small>Active allocated payments</small></div>
+            <div class="card"><p>Remaining</p><h2 id="cfRemaining">Rs. 0</h2><small>Sale value - paid</small></div>
+            <div class="card"><p>Unpaid Dues</p><h2 id="cfUnpaidDues">Rs. 0</h2><small>Active client dues</small></div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab-btn active" data-client-tab="payments">Payments</button>
+            <button class="tab-btn" data-client-tab="dues">Dues</button>
+          </div>
+
+          <div id="clientPaymentsTab" class="client-tab active">
+            <div class="page-actions small-page-actions">
+              <div><h3>Payments</h3><p class="muted">These entries are saved in the central ledger.</p></div>
+              <button id="showAddClientPaymentBtn" class="primary" type="button">+ Add Payment</button>
+            </div>
+
+            <div id="clientPaymentFormPanel" class="panel hidden">
+              <h3>Add Client Payment</h3>
+              <form id="clientPaymentForm" class="form-grid">
+                <input type="hidden" id="clientPaymentClientId" />
+                <div>
+                  <label>Sale Deal / Plot *</label>
+                  <select id="clientPaymentDealSelect" required>
+                    <option value="">Select deal</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Payment Date *</label>
+                  <input id="clientPaymentDate" type="date" required />
+                </div>
+                <div>
+                  <label>Amount *</label>
+                  <input id="clientPaymentAmount" data-money-input inputmode="numeric" required />
+                </div>
+                <div>
+                  <label>Payment Method</label>
+                  <select id="clientPaymentMethod">
+                    <option value="cash">Cash</option>
+                    <option value="online">Online</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="exchange">Exchange</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Receipt No</label>
+                  <input id="clientPaymentReceiptNo" />
+                </div>
+                <div>
+                  <label>Register</label>
+                  <select id="clientPaymentRegisterId">
+                    <option value="">Default / no register</option>
+                  </select>
+                </div>
+                <div class="span-2">
+                  <label>Description</label>
+                  <textarea id="clientPaymentDescription" rows="2" placeholder="Optional. Auto description will be used if blank."></textarea>
+                </div>
+                <div class="span-2 form-actions">
+                  <button class="primary" type="submit">Save Payment</button>
+                  <button class="ghost" type="button" id="cancelClientPaymentBtn">Cancel</button>
+                </div>
+              </form>
+              <p id="clientPaymentMessage" class="message"></p>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Deal / Plot</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="clientPaymentsTableBody"><tr><td colspan="7">No payments loaded.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="clientDuesTab" class="client-tab">
+            <div class="page-actions small-page-actions">
+              <div><h3>Dues</h3><p class="muted">Client dues are tracked separately but can be paid through the ledger later.</p></div>
+              <button id="showAddClientDueBtn" class="primary" type="button">+ Add Due</button>
+            </div>
+
+            <div id="clientDueFormPanel" class="panel hidden">
+              <h3>Add Client Due</h3>
+              <form id="clientDueForm" class="form-grid">
+                <input type="hidden" id="clientDueClientId" />
+                <div>
+                  <label>Due Type</label>
+                  <select id="clientDueType">
+                    <option value="security_fee">Security Fee</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Linked Deal / Plot</label>
+                  <select id="clientDueDealSelect">
+                    <option value="">No deal</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Amount *</label>
+                  <input id="clientDueAmount" data-money-input inputmode="numeric" required />
+                </div>
+                <div>
+                  <label>Due Month</label>
+                  <input id="clientDueMonth" type="month" />
+                </div>
+                <div class="span-2">
+                  <label>Notes</label>
+                  <textarea id="clientDueNotes" rows="2"></textarea>
+                </div>
+                <div class="span-2 form-actions">
+                  <button class="primary" type="submit">Save Due</button>
+                  <button class="ghost" type="button" id="cancelClientDueBtn">Cancel</button>
+                </div>
+              </form>
+              <p id="clientDueMessage" class="message"></p>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Type</th><th>Month</th><th>Deal / Plot</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="clientDuesTableBody"><tr><td colspan="6">No dues loaded.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="saleWorkflowOverlay" class="modal-overlay hidden">
         <div class="modal-card large-modal">
           <div class="modal-header">
@@ -693,7 +833,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="config.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

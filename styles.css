@@ -47,3 +47,13 @@ small[dir="rtl"],input[dir="rtl"],textarea[dir="rtl"]{text-align:right}
 /* Stage 12 additions */
 .money-preview{display:block;margin-top:6px;color:var(--green-dark);font-weight:800}
 input[data-money-input]{font-weight:700}
+
+/* Stage 13 client finance additions */
+.client-finance-summary{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab-btn{border:0;background:transparent;padding:12px 14px;font-weight:900;color:var(--muted);border-bottom:3px solid transparent}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.client-tab{display:none}
+.client-tab.active{display:block}
+.small-page-actions{margin-top:4px}
+@media(max-width:900px){.client-finance-summary{grid-template-columns:1fr}.tabs{overflow:auto}.tab-btn{white-space:nowrap}}

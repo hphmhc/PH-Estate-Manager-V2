@@ -41,7 +41,7 @@ function setupSessionActivityTracking(){
   }, 60000);
 }
 
-const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[],cases:[],ledgerEntries:[],accountCategories:[],registers:[],saleDeals:[]};
+const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[],cases:[],ledgerEntries:[],accountCategories:[],registers:[],saleDeals:[],clientFinance:{client:null,deals:[],payments:[],dues:[]}};
 const pageTitles={dashboard:"Dashboard",projects:"Projects",plots:"Plots",clients:"Clients",sellers:"Sellers","sale-deals":"Sale Deals",agents:"Agents",cases:"Cases","daily-accounts":"Daily Accounts",documents:"Documents",reports:"Reports",users:"Users",settings:"Settings","import-backup":"Import / Backup"};
 function setMessage(m){$("#loginMessage").textContent=m||""}function showApp(){$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden")}function showLogin(){$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden")}
 function updateUserUI(){const email=state.user?.email||"User";const name=state.profile?.full_name||email;const role=state.profile?.role||"manager";$("#userName").textContent=name;$("#userRole").textContent=role;const isAdmin=role==="admin";$$('.admin-only').forEach(el=>el.style.display=isAdmin?"":"none");if(!isAdmin&&["users","settings","import-backup"].includes(state.activePage)){goPage("dashboard")}}
@@ -128,6 +128,7 @@ function sortSellers(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.n
 function sortAgents(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.name_en,b.name_en)||naturalCompare(a.cnic,b.cnic))}
 function sortCases(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.case_title,b.case_title)||naturalCompare(a.case_number,b.case_number))}
 function sortLedgerEntries(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(b.entry_date,a.entry_date)||naturalCompare(a.entry_no,b.entry_no))}
+function sortSaleDeals(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(a.deal_no,b.deal_no)||naturalCompare(a.deal_date,b.deal_date))}
 function formatCurrency(value){return 'Rs. ' + Number(value||0).toLocaleString('en-PK')}
 function sortPlots(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(getProjectName(a.project_id),getProjectName(b.project_id))||naturalCompare(a.plot_no,b.plot_no))}
 
@@ -136,13 +137,14 @@ function sortPlots(rows){return [...(rows||[])].sort((a,b)=>naturalCompare(getPr
 // -----------------------------
 async function refreshDashboardCounts(){
   try{
-    const [projectsRes, plotsRes, clientsRes, ledgerRes, saleDealPlotsRes, allocationsRes] = await Promise.all([
+    const [projectsRes, plotsRes, clientsRes, ledgerRes, saleDealPlotsRes, allocationsRes, duesRes] = await Promise.all([
       supabaseClient.from('projects').select('id', { count:'exact', head:true }),
       supabaseClient.from('plots').select('id,availability_status'),
       supabaseClient.from('clients').select('id', { count:'exact', head:true }),
       supabaseClient.from('ledger_entries').select('id,direction,amount,status,payment_method'),
       supabaseClient.from('sale_deal_plots').select('id,plot_sale_price,plot_deal_status,sale_deal_id'),
-      supabaseClient.from('payment_allocations').select('id,allocated_amount,ledger_entry_id,sale_deal_id,plot_id')
+      supabaseClient.from('payment_allocations').select('id,allocated_amount,ledger_entry_id,sale_deal_id,plot_id'),
+      supabaseClient.from('dues').select('amount,discount_amount,status')
     ]);
 
     const projectCount = projectsRes.count ?? 0;
@@ -161,7 +163,8 @@ async function refreshDashboardCounts(){
 
     const allocations = (allocationsRes.data || []).filter(row=>activeLedgerIds.has(row.ledger_entry_id));
     const allocatedPaid = allocations.reduce((sum,row)=>sum+Number(row.allocated_amount||0),0);
-    const receivables = Math.max(totalSaleValue - allocatedPaid, 0);
+    const unpaidDues=(duesRes.data||[]).filter(d=>d.status==='unpaid').reduce((sum,d)=>sum+Number(d.amount||0)-Number(d.discount_amount||0),0);
+    const receivables = Math.max(totalSaleValue - allocatedPaid, 0) + unpaidDues;
 
     const cards = $$('.card');
     if(cards[0]) cards[0].querySelector('h2').textContent = projectCount;
@@ -172,7 +175,7 @@ async function refreshDashboardCounts(){
     if(cards[2]) cards[2].querySelector('h2').textContent = clientsCount;
     if(cards[3]) {
       cards[3].querySelector('h2').textContent = formatCurrency(receivables);
-      cards[3].querySelector('small').textContent = 'Sale prices minus active allocated payments';
+      cards[3].querySelector('small').textContent = 'Remaining plot payments + unpaid dues';
     }
     if(cards[4]) cards[4].querySelector('h2').textContent = formatCurrency(moneyIn);
     if(cards[5]) cards[5].querySelector('h2').textContent = formatCurrency(moneyOut);
@@ -380,7 +383,7 @@ function clientFormElements(){return {panel:$('#clientFormPanel'),form:$('#clien
 function showClientForm(client=null){const f=clientFormElements();f.panel.classList.remove('hidden');f.title.textContent=client?'Edit Client':'Add Client';f.id.value=client?.id||'';f.nameEn.value=client?.name_en||'';f.nameUr.value=client?.name_ur||'';f.fatherEn.value=client?.father_en||'';f.fatherUr.value=client?.father_ur||'';f.cnic.value=client?.cnic||'';f.phone.value=client?.phone||'';f.addressEn.value=client?.address_en||'';f.addressUr.value=client?.address_ur||'';f.notes.value=client?.notes||'';f.message.textContent='';f.nameEn.focus()}
 function hideClientForm(){const f=clientFormElements();f.form.reset();f.id.value='';f.panel.classList.add('hidden');f.message.textContent=''}
 async function loadClients(){const tbody=$('#clientsTableBody');if(!tbody)return;tbody.innerHTML='<tr><td colspan="6">Loading clients...</td></tr>';const {data,error}=await supabaseClient.from('clients').select('*').order('name_en',{ascending:true});if(error){tbody.innerHTML=`<tr><td colspan="6">Error: ${escapeHtml(error.message)}</td></tr>`;return}state.clients=sortClients(data||[]);renderClients()}
-function renderClients(){const tbody=$('#clientsTableBody');if(!tbody)return;const q=($('#clientSearch')?.value||'').toLowerCase().trim();const rows=sortClients(state.clients||[]).filter(c=>{const haystack=[c.name_en,c.name_ur,c.father_en,c.father_ur,c.cnic,c.phone,c.address_en,c.address_ur,c.notes].join(' ').toLowerCase();return !q||haystack.includes(q)});if(!rows.length){tbody.innerHTML='<tr><td colspan="6">No clients found.</td></tr>';return}tbody.innerHTML=rows.map(c=>`<tr><td data-label="Name"><strong>${escapeHtml(c.name_en||'')}</strong>${c.name_ur?`<br><small dir="rtl">${escapeHtml(c.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(c.father_en||'-')}${c.father_ur?`<br><small dir="rtl">${escapeHtml(c.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(c.cnic||'-')}</td><td data-label="Phone">${escapeHtml(c.phone||'-')}</td><td data-label="Address">${escapeHtml(c.address_en||'-')}${c.address_ur?`<br><small dir="rtl">${escapeHtml(c.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-edit-client="${c.id}">Edit</button><button class="danger-btn" data-delete-client="${c.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-client]').forEach(btn=>btn.onclick=()=>showClientForm((state.clients||[]).find(c=>c.id===btn.dataset.editClient)));$$('[data-delete-client]').forEach(btn=>btn.onclick=()=>deleteClient(btn.dataset.deleteClient))}
+function renderClients(){const tbody=$('#clientsTableBody');if(!tbody)return;const q=($('#clientSearch')?.value||'').toLowerCase().trim();const rows=sortClients(state.clients||[]).filter(c=>{const haystack=[c.name_en,c.name_ur,c.father_en,c.father_ur,c.cnic,c.phone,c.address_en,c.address_ur,c.notes].join(' ').toLowerCase();return !q||haystack.includes(q)});if(!rows.length){tbody.innerHTML='<tr><td colspan="6">No clients found.</td></tr>';return}tbody.innerHTML=rows.map(c=>`<tr><td data-label="Name"><strong>${escapeHtml(c.name_en||'')}</strong>${c.name_ur?`<br><small dir="rtl">${escapeHtml(c.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(c.father_en||'-')}${c.father_ur?`<br><small dir="rtl">${escapeHtml(c.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(c.cnic||'-')}</td><td data-label="Phone">${escapeHtml(c.phone||'-')}</td><td data-label="Address">${escapeHtml(c.address_en||'-')}${c.address_ur?`<br><small dir="rtl">${escapeHtml(c.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-client-payments="${c.id}">Payments</button><button class="small-btn" data-client-dues="${c.id}">Dues</button><button class="small-btn" data-edit-client="${c.id}">Edit</button><button class="danger-btn" data-delete-client="${c.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-client]').forEach(btn=>btn.onclick=()=>showClientForm((state.clients||[]).find(c=>c.id===btn.dataset.editClient)));$$('[data-delete-client]').forEach(btn=>btn.onclick=()=>deleteClient(btn.dataset.deleteClient))}
 async function saveClient(e){e.preventDefault();const f=clientFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:formatCnic(f.cnic.value.trim())||null,phone:formatPhone(f.phone.value.trim())||null,address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Client name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('clients').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('clients').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideClientForm();await loadClients();await refreshDashboardCounts()}
 async function deleteClient(id){if(!confirm('Delete this client? Only do this for test records.'))return;const {error}=await supabaseClient.from('clients').delete().eq('id',id);if(error){alert(error.message);return}await loadClients();await refreshDashboardCounts()}
 function setupClientsModule(){if($('#addClientBtn'))$('#addClientBtn').onclick=()=>showClientForm();if($('#cancelClientBtn'))$('#cancelClientBtn').onclick=hideClientForm;if($('#clientForm'))$('#clientForm').onsubmit=saveClient;if($('#refreshClientsBtn'))$('#refreshClientsBtn').onclick=loadClients;if($('#clientSearch'))$('#clientSearch').oninput=renderClients}
@@ -867,4 +870,341 @@ function findCategoryByCode(code){return (state.accountCategories||[]).find(c=>S
 async function createSaleWorkflowEntry(ev){ev.preventDefault();const f=saleWorkflowElements();const paymentAmount=parseMoney(f.paymentAmount.value);const salePrice=parseMoney(f.salePrice.value);const clientPayload={name_en:f.clientNameEn.value.trim(),name_ur:f.clientNameUr.value.trim()||null,father_en:f.clientFatherEn.value.trim()||null,father_ur:f.clientFatherUr.value.trim()||null,cnic:formatCnic(f.clientCnic.value.trim())||null,phone:formatPhone(f.clientPhone.value.trim())||null,address_en:f.clientAddressEn.value.trim()||null,address_ur:f.clientAddressUr.value.trim()||null,notes:f.notes.value.trim()||null,created_by:state.profile?.id||null};if(!clientPayload.name_en){f.message.textContent='Client name is required.';return}if(!f.projectId.value){f.message.textContent='Project is required.';return}if(!f.plotId.value){f.message.textContent='Available plot is required.';return}if(!salePrice||salePrice<=0){f.message.textContent='Sale price is required.';return}f.message.textContent='Saving sale entry...';try{const {data:client,error:clientError}=await supabaseClient.from('clients').insert(clientPayload).select().single();if(clientError)throw clientError;const {data:deal,error:dealError}=await supabaseClient.from('sale_deals').insert({deal_no:f.dealNo.value.trim()||null,project_id:f.projectId.value,deal_date:f.dealDate.value||todayIsoDate(),deal_status:'active',total_sale_price:salePrice,notes:f.notes.value.trim()||null,created_by:state.profile?.id||null}).select().single();if(dealError)throw dealError;const {error:clientLinkError}=await supabaseClient.from('sale_deal_clients').insert({sale_deal_id:deal.id,client_id:client.id,ownership_percentage:100,is_primary_client:true,created_by:state.profile?.id||null});if(clientLinkError)throw clientLinkError;const {error:plotLinkError}=await supabaseClient.from('sale_deal_plots').insert({sale_deal_id:deal.id,plot_id:f.plotId.value,plot_sale_price:salePrice,plot_deal_status:f.plotStatus.value,created_by:state.profile?.id||null});if(plotLinkError)throw plotLinkError;if(f.agentId.value){const {error:agentLinkError}=await supabaseClient.from('sale_deal_agents').insert({sale_deal_id:deal.id,agent_id:f.agentId.value,role_in_deal:'main_agent',created_by:state.profile?.id||null});if(agentLinkError)throw agentLinkError}const {error:plotUpdateError}=await supabaseClient.from('plots').update({availability_status:f.plotStatus.value}).eq('id',f.plotId.value);if(plotUpdateError)throw plotUpdateError;if(paymentAmount>0){await ensureAccountCategoriesLoaded();const plotPaymentCategory=findCategoryByCode('PLOT_PAYMENT');const {data:ledgerEntry,error:ledgerError}=await supabaseClient.from('ledger_entries').insert({entry_date:f.dealDate.value||todayIsoDate(),direction:'money_in',amount:paymentAmount,payment_method:f.paymentMethod.value||'cash',category_id:plotPaymentCategory?.id||null,register_id:f.registerId.value||null,description:`Token/payment from ${client.name_en} for ${getPlotLabel(f.plotId.value)}`,project_id:f.projectId.value,plot_id:f.plotId.value,client_id:client.id,seller_id:f.sellerId.value||null,agent_id:f.agentId.value||null,sale_deal_id:deal.id,reference_type:'sale_workflow',reference_id:deal.id,receipt_no:f.receiptNo.value.trim()||null,status:'active',created_by:state.profile?.id||null}).select().single();if(ledgerError)throw ledgerError;const {error:allocationError}=await supabaseClient.from('payment_allocations').insert({ledger_entry_id:ledgerEntry.id,sale_deal_id:deal.id,plot_id:f.plotId.value,client_id:client.id,allocated_amount:paymentAmount,allocation_type:'manual',notes:'Created from New Sale Entry workflow',created_by:state.profile?.id||null});if(allocationError)throw allocationError}f.message.textContent='Sale entry saved successfully.';state.plots=[];state.clients=[];await Promise.all([loadPlots().catch(()=>{}),loadClients().catch(()=>{}),refreshDashboardCounts().catch(()=>{})]);setTimeout(()=>closeSaleWorkflow(),700)}catch(err){console.error(err);f.message.textContent=err.message||'Could not save sale entry.'}}
 function setupSaleWorkflowModule(){$$('[data-open-sale-workflow]').forEach(btn=>btn.addEventListener('click',()=>openSaleWorkflow()));if($('#closeSaleWorkflowBtn'))$('#closeSaleWorkflowBtn').onclick=closeSaleWorkflow;if($('#cancelSaleWorkflowBtn'))$('#cancelSaleWorkflowBtn').onclick=closeSaleWorkflow;if($('#saleWorkflowOverlay'))$('#saleWorkflowOverlay').addEventListener('click',e=>{if(e.target.id==='saleWorkflowOverlay')closeSaleWorkflow()});if($('#wfProjectId'))$('#wfProjectId').addEventListener('change',updateWorkflowAvailablePlots);if($('#saleWorkflowForm'))$('#saleWorkflowForm').onsubmit=createSaleWorkflowEntry}
 
-function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupCasesModule();setupLedgerModule();setupSaleWorkflowModule();setupInputFormatters();setupMoneyInputs();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();
+
+// -----------------------------
+// Stage 13: Client payments and dues workflow
+// -----------------------------
+async function loadClientDeals(clientId){
+  const {data:dealLinks,error:dealLinksError}=await supabaseClient
+    .from('sale_deal_clients')
+    .select('sale_deal_id,client_id')
+    .eq('client_id',clientId);
+  if(dealLinksError) throw dealLinksError;
+
+  const dealIds=(dealLinks||[]).map(x=>x.sale_deal_id);
+  if(!dealIds.length) return [];
+
+  const [{data:deals,error:dealsError},{data:dealPlots,error:dealPlotsError}] = await Promise.all([
+    supabaseClient.from('sale_deals').select('*').in('id',dealIds),
+    supabaseClient.from('sale_deal_plots').select('*').in('sale_deal_id',dealIds)
+  ]);
+  if(dealsError) throw dealsError;
+  if(dealPlotsError) throw dealPlotsError;
+
+  await ensurePlotsLoaded();
+
+  return (deals||[]).map(deal=>{
+    const plots=(dealPlots||[]).filter(p=>p.sale_deal_id===deal.id);
+    const total=plots.reduce((sum,p)=>sum+Number(p.plot_sale_price||0),0);
+    const plotLabels=plots.map(p=>getPlotLabel(p.plot_id)).join(', ');
+    return {...deal, _plots:plots, _plotLabels:plotLabels, _totalSaleValue:total};
+  });
+}
+
+async function loadClientPayments(clientId, dealIds){
+  if(!dealIds.length) return [];
+  const {data:allocations,error:allocError}=await supabaseClient
+    .from('payment_allocations')
+    .select('*')
+    .in('sale_deal_id',dealIds)
+    .eq('client_id',clientId);
+  if(allocError) throw allocError;
+
+  const ledgerIds=(allocations||[]).map(a=>a.ledger_entry_id).filter(Boolean);
+  if(!ledgerIds.length) return [];
+
+  const {data:ledger,error:ledgerError}=await supabaseClient
+    .from('ledger_entries')
+    .select('*')
+    .in('id',ledgerIds);
+  if(ledgerError) throw ledgerError;
+
+  return (allocations||[]).map(a=>{
+    const entry=(ledger||[]).find(l=>l.id===a.ledger_entry_id);
+    const deal=(state.clientFinance.deals||[]).find(d=>d.id===a.sale_deal_id);
+    return {...a,_ledger:entry,_deal:deal};
+  }).sort((a,b)=>naturalCompare(b._ledger?.entry_date,a._ledger?.entry_date));
+}
+
+async function loadClientDues(clientId, dealIds){
+  let query=supabaseClient.from('dues').select('*').eq('client_id',clientId);
+  const {data,error}=await query;
+  if(error) throw error;
+  return data||[];
+}
+
+function clientFinanceElements(){
+  return {
+    overlay:$('#clientFinanceOverlay'),title:$('#clientFinanceTitle'),subtitle:$('#clientFinanceSubtitle'),
+    totalSale:$('#cfTotalSale'),totalPaid:$('#cfTotalPaid'),remaining:$('#cfRemaining'),unpaidDues:$('#cfUnpaidDues'),
+    paymentsBody:$('#clientPaymentsTableBody'),duesBody:$('#clientDuesTableBody'),
+    paymentPanel:$('#clientPaymentFormPanel'),paymentForm:$('#clientPaymentForm'),paymentMessage:$('#clientPaymentMessage'),
+    paymentClientId:$('#clientPaymentClientId'),paymentDealSelect:$('#clientPaymentDealSelect'),paymentDate:$('#clientPaymentDate'),
+    paymentAmount:$('#clientPaymentAmount'),paymentMethod:$('#clientPaymentMethod'),paymentReceiptNo:$('#clientPaymentReceiptNo'),
+    paymentRegisterId:$('#clientPaymentRegisterId'),paymentDescription:$('#clientPaymentDescription'),
+    duePanel:$('#clientDueFormPanel'),dueForm:$('#clientDueForm'),dueMessage:$('#clientDueMessage'),
+    dueClientId:$('#clientDueClientId'),dueType:$('#clientDueType'),dueDealSelect:$('#clientDueDealSelect'),
+    dueAmount:$('#clientDueAmount'),dueMonth:$('#clientDueMonth'),dueNotes:$('#clientDueNotes')
+  };
+}
+
+async function openClientFinance(clientId, defaultTab='payments'){
+  await Promise.all([ensureClientsLoaded(), ensureRegistersLoaded(), ensureAccountCategoriesLoaded(), ensureProjectsLoaded(), ensurePlotsLoaded()]);
+  const client=(state.clients||[]).find(c=>c.id===clientId);
+  if(!client){alert('Client not found. Refresh clients and try again.');return}
+
+  const f=clientFinanceElements();
+  state.clientFinance.client=client;
+  f.title.textContent=`Client Account: ${client.name_en}`;
+  f.subtitle.textContent=[client.phone,client.cnic].filter(Boolean).join(' | ') || 'Payments and dues connected to this client.';
+  f.overlay.classList.remove('hidden');
+
+  await refreshClientFinanceData(defaultTab);
+}
+
+function closeClientFinance(){
+  const f=clientFinanceElements();
+  f.overlay.classList.add('hidden');
+  state.clientFinance={client:null,deals:[],payments:[],dues:[]};
+  hideClientPaymentForm();
+  hideClientDueForm();
+}
+
+async function refreshClientFinanceData(defaultTab='payments'){
+  const client=state.clientFinance.client;
+  if(!client) return;
+  const f=clientFinanceElements();
+  f.paymentsBody.innerHTML='<tr><td colspan="7">Loading payments...</td></tr>';
+  f.duesBody.innerHTML='<tr><td colspan="6">Loading dues...</td></tr>';
+
+  const deals=await loadClientDeals(client.id);
+  state.clientFinance.deals=deals;
+  const dealIds=deals.map(d=>d.id);
+  const [payments,dues]=await Promise.all([loadClientPayments(client.id,dealIds),loadClientDues(client.id,dealIds)]);
+  state.clientFinance.payments=payments;
+  state.clientFinance.dues=dues;
+
+  populateClientFinanceSelects();
+  renderClientFinanceSummary();
+  renderClientPayments();
+  renderClientDues();
+  switchClientFinanceTab(defaultTab);
+}
+
+function populateClientFinanceSelects(){
+  const f=clientFinanceElements();
+  const dealOptions='<option value="">Select deal</option>' + (state.clientFinance.deals||[]).map(d=>`<option value="${d.id}">${escapeHtml((d.deal_no||'Deal')+' - '+(d._plotLabels||'-'))}</option>`).join('');
+  const dueDealOptions='<option value="">No deal</option>' + (state.clientFinance.deals||[]).map(d=>`<option value="${d.id}">${escapeHtml((d.deal_no||'Deal')+' - '+(d._plotLabels||'-'))}</option>`).join('');
+  const registerOptions='<option value="">Default / no register</option>' + (state.registers||[]).map(r=>`<option value="${r.id}">${escapeHtml(r.name||'')}</option>`).join('');
+  f.paymentDealSelect.innerHTML=dealOptions;
+  f.dueDealSelect.innerHTML=dueDealOptions;
+  f.paymentRegisterId.innerHTML=registerOptions;
+}
+
+function renderClientFinanceSummary(){
+  const f=clientFinanceElements();
+  const totalSale=(state.clientFinance.deals||[]).reduce((sum,d)=>sum+Number(d._totalSaleValue||0),0);
+  const paid=(state.clientFinance.payments||[]).filter(p=>p._ledger?.status==='active').reduce((sum,p)=>sum+Number(p.allocated_amount||0),0);
+  const unpaidDues=(state.clientFinance.dues||[]).filter(d=>d.status==='unpaid').reduce((sum,d)=>sum+Number(d.amount||0)-Number(d.discount_amount||0),0);
+  f.totalSale.textContent=formatCurrency(totalSale);
+  f.totalPaid.textContent=formatCurrency(paid);
+  f.remaining.textContent=formatCurrency(Math.max(totalSale-paid,0));
+  f.unpaidDues.textContent=formatCurrency(unpaidDues);
+}
+
+function renderClientPayments(){
+  const f=clientFinanceElements();
+  const rows=state.clientFinance.payments||[];
+  if(!rows.length){f.paymentsBody.innerHTML='<tr><td colspan="7">No payments found for this client.</td></tr>';return}
+  f.paymentsBody.innerHTML=rows.map(p=>{
+    const entry=p._ledger||{};
+    const deal=p._deal||{};
+    return `<tr class="${entry.status==='voided'?'voided-row':''}">
+      <td data-label="Date">${escapeHtml(entry.entry_date||'-')}</td>
+      <td data-label="Deal / Plot">${escapeHtml((deal.deal_no||'Deal')+' - '+(deal._plotLabels||'-'))}</td>
+      <td data-label="Amount">${formatCurrency(p.allocated_amount)}</td>
+      <td data-label="Method">${escapeHtml(entry.payment_method||'-')}</td>
+      <td data-label="Receipt">${escapeHtml(entry.receipt_no||'-')}</td>
+      <td data-label="Status"><span class="status-badge ${escapeHtml(entry.status||'active')}">${escapeHtml(entry.status||'active')}</span></td>
+      <td data-label="Actions"><div class="row-actions">${entry.status==='active'?`<button class="danger-btn" data-void-client-payment="${entry.id}">Void</button>`:''}</div></td>
+    </tr>`;
+  }).join('');
+  $$('[data-void-client-payment]').forEach(btn=>btn.onclick=()=>voidClientPayment(btn.dataset.voidClientPayment));
+}
+
+function renderClientDues(){
+  const f=clientFinanceElements();
+  const rows=state.clientFinance.dues||[];
+  if(!rows.length){f.duesBody.innerHTML='<tr><td colspan="6">No dues found for this client.</td></tr>';return}
+  f.duesBody.innerHTML=rows.map(d=>{
+    const deal=(state.clientFinance.deals||[]).find(x=>x.id===d.sale_deal_id);
+    return `<tr>
+      <td data-label="Type">${escapeHtml(d.due_type||'-')}</td>
+      <td data-label="Month">${escapeHtml(d.due_month||'-')}</td>
+      <td data-label="Deal / Plot">${escapeHtml(deal?((deal.deal_no||'Deal')+' - '+(deal._plotLabels||'-')):'-')}</td>
+      <td data-label="Amount">${formatCurrency(Number(d.amount||0)-Number(d.discount_amount||0))}</td>
+      <td data-label="Status"><span class="status-badge ${escapeHtml(d.status||'unpaid')}">${escapeHtml(d.status||'unpaid')}</span></td>
+      <td data-label="Actions"><div class="row-actions">${d.status==='unpaid'?`<button class="small-btn" data-waive-client-due="${d.id}">Waive</button>`:''}</div></td>
+    </tr>`;
+  }).join('');
+  $$('[data-waive-client-due]').forEach(btn=>btn.onclick=()=>waiveClientDue(btn.dataset.waiveClientDue));
+}
+
+function switchClientFinanceTab(tab){
+  $$('.tab-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.clientTab===tab));
+  $$('.client-tab').forEach(panel=>panel.classList.remove('active'));
+  if(tab==='dues') $('#clientDuesTab').classList.add('active');
+  else $('#clientPaymentsTab').classList.add('active');
+}
+
+function showClientPaymentForm(){
+  const f=clientFinanceElements();
+  f.paymentPanel.classList.remove('hidden');
+  f.paymentClientId.value=state.clientFinance.client?.id||'';
+  f.paymentDate.value=todayIsoDate();
+  f.paymentMessage.textContent='';
+  setupMoneyInputs();
+}
+
+function hideClientPaymentForm(){
+  const f=clientFinanceElements();
+  if(!f.paymentForm) return;
+  f.paymentForm.reset();
+  f.paymentPanel.classList.add('hidden');
+  f.paymentMessage.textContent='';
+}
+
+function showClientDueForm(){
+  const f=clientFinanceElements();
+  f.duePanel.classList.remove('hidden');
+  f.dueClientId.value=state.clientFinance.client?.id||'';
+  f.dueMonth.value=new Date().toISOString().slice(0,7);
+  f.dueMessage.textContent='';
+  setupMoneyInputs();
+}
+
+function hideClientDueForm(){
+  const f=clientFinanceElements();
+  if(!f.dueForm) return;
+  f.dueForm.reset();
+  f.duePanel.classList.add('hidden');
+  f.dueMessage.textContent='';
+}
+
+async function saveClientPayment(e){
+  e.preventDefault();
+  const f=clientFinanceElements();
+  const client=state.clientFinance.client;
+  const deal=(state.clientFinance.deals||[]).find(d=>d.id===f.paymentDealSelect.value);
+  if(!client){f.paymentMessage.textContent='Client not selected.';return}
+  if(!deal){f.paymentMessage.textContent='Sale deal is required.';return}
+  const amount=parseMoney(f.paymentAmount.value);
+  if(!amount || amount<=0){f.paymentMessage.textContent='Amount must be greater than zero.';return}
+
+  const firstPlot=deal._plots?.[0];
+  const plotId=firstPlot?.plot_id||null;
+  await ensureAccountCategoriesLoaded();
+  const category=findCategoryByCode('PLOT_PAYMENT');
+  f.paymentMessage.textContent='Saving payment...';
+
+  const ledgerPayload={
+    entry_date:f.paymentDate.value||todayIsoDate(),
+    direction:'money_in',
+    amount,
+    payment_method:f.paymentMethod.value||'cash',
+    category_id:category?.id||null,
+    register_id:f.paymentRegisterId.value||null,
+    description:f.paymentDescription.value.trim()||`Payment from ${client.name_en} for ${deal._plotLabels||'sale deal'}`,
+    project_id:deal.project_id||null,
+    plot_id:plotId,
+    client_id:client.id,
+    sale_deal_id:deal.id,
+    reference_type:'client_payment',
+    reference_id:deal.id,
+    receipt_no:f.paymentReceiptNo.value.trim()||null,
+    status:'active',
+    created_by:state.profile?.id||null
+  };
+  const {data:ledgerEntry,error:ledgerError}=await supabaseClient.from('ledger_entries').insert(ledgerPayload).select().single();
+  if(ledgerError){f.paymentMessage.textContent=ledgerError.message;return}
+
+  const {error:allocationError}=await supabaseClient.from('payment_allocations').insert({
+    ledger_entry_id:ledgerEntry.id,
+    sale_deal_id:deal.id,
+    plot_id:plotId,
+    client_id:client.id,
+    allocated_amount:amount,
+    allocation_type:'manual',
+    notes:'Created from Client page payment workflow',
+    created_by:state.profile?.id||null
+  });
+  if(allocationError){f.paymentMessage.textContent=allocationError.message;return}
+
+  hideClientPaymentForm();
+  await refreshClientFinanceData('payments');
+  await refreshDashboardCounts();
+}
+
+async function voidClientPayment(ledgerEntryId){
+  const reason=prompt('Reason for voiding this payment?');
+  if(reason===null) return;
+  const {error}=await supabaseClient.from('ledger_entries').update({status:'voided',void_reason:reason||'Voided from client page'}).eq('id',ledgerEntryId);
+  if(error){alert(error.message);return}
+  await refreshClientFinanceData('payments');
+  await refreshDashboardCounts();
+}
+
+async function saveClientDue(e){
+  e.preventDefault();
+  const f=clientFinanceElements();
+  const client=state.clientFinance.client;
+  if(!client){f.dueMessage.textContent='Client not selected.';return}
+  const amount=parseMoney(f.dueAmount.value);
+  if(!amount || amount<=0){f.dueMessage.textContent='Amount must be greater than zero.';return}
+  const deal=(state.clientFinance.deals||[]).find(d=>d.id===f.dueDealSelect.value);
+  const firstPlot=deal?._plots?.[0];
+
+  const payload={
+    due_type:f.dueType.value||'other',
+    project_id:deal?.project_id||null,
+    plot_id:firstPlot?.plot_id||null,
+    client_id:client.id,
+    sale_deal_id:deal?.id||null,
+    amount,
+    discount_amount:0,
+    due_month:f.dueMonth.value||null,
+    status:'unpaid',
+    notes:f.dueNotes.value.trim()||null,
+    created_by:state.profile?.id||null
+  };
+
+  f.dueMessage.textContent='Saving due...';
+  const {error}=await supabaseClient.from('dues').insert(payload);
+  if(error){f.dueMessage.textContent=error.message;return}
+  hideClientDueForm();
+  await refreshClientFinanceData('dues');
+  await refreshDashboardCounts();
+}
+
+async function waiveClientDue(dueId){
+  const ok=confirm('Waive this due?');
+  if(!ok) return;
+  const {error}=await supabaseClient.from('dues').update({status:'waived'}).eq('id',dueId);
+  if(error){alert(error.message);return}
+  await refreshClientFinanceData('dues');
+  await refreshDashboardCounts();
+}
+
+function setupClientFinanceModule(){
+  if($('#closeClientFinanceBtn')) $('#closeClientFinanceBtn').onclick=closeClientFinance;
+  if($('#clientFinanceOverlay')) $('#clientFinanceOverlay').addEventListener('click',(event)=>{if(event.target.id==='clientFinanceOverlay')closeClientFinance()});
+  $$('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>switchClientFinanceTab(btn.dataset.clientTab)));
+  if($('#showAddClientPaymentBtn')) $('#showAddClientPaymentBtn').onclick=showClientPaymentForm;
+  if($('#cancelClientPaymentBtn')) $('#cancelClientPaymentBtn').onclick=hideClientPaymentForm;
+  if($('#clientPaymentForm')) $('#clientPaymentForm').onsubmit=saveClientPayment;
+  if($('#showAddClientDueBtn')) $('#showAddClientDueBtn').onclick=showClientDueForm;
+  if($('#cancelClientDueBtn')) $('#cancelClientDueBtn').onclick=hideClientDueForm;
+  if($('#clientDueForm')) $('#clientDueForm').onsubmit=saveClientDue;
+}
+
+function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupCasesModule();setupLedgerModule();setupSaleWorkflowModule();setupClientFinanceModule();setupInputFormatters();setupMoneyInputs();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();
