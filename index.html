@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=11" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 10</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 11</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -64,6 +64,17 @@
 
       <section id="page-dashboard" class="page active">
         <div class="filters"><select><option>All Projects</option></select><select><option>This Year</option><option>This Month</option></select></div>
+
+        <div class="panel workflow-panel">
+          <div>
+            <h2>Quick Workflows</h2>
+            <p class="muted">Use these for normal office work. Records are saved into the correct tables automatically.</p>
+          </div>
+          <div class="workflow-actions">
+            <button class="primary" data-open-sale-workflow>+ New Sale Entry</button>
+          </div>
+        </div>
+
         <div class="cards">
           <div class="card"><p>Projects</p><h2>0</h2><small>Total projects</small></div>
           <div class="card"><p>Plots</p><h2>0 / 0</h2><small>Available / total</small></div>
@@ -73,7 +84,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 10 Status</h2><p>Projects, Plots, Clients, Sellers, Agents, Cases, and category-smart Daily Accounts are active.</p></div>
+        <div class="panel"><h2>Stage 11 Status</h2><p>New Sale Entry workflow added. You can create client, assign available plot, create sale deal, and record token payment from one form.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -151,7 +162,7 @@
             <h2>Plots</h2>
             <p class="muted">Add and manage plot records. Sale price and payment status will come from Sale Deals and Ledger later.</p>
           </div>
-          <button id="addPlotBtn" class="primary">+ Add Plot</button>
+          <div class="action-group"><button class="ghost" data-open-sale-workflow>+ New Sale Entry</button><button id="addPlotBtn" class="primary">+ Add Plot</button></div>
         </div>
 
         <div id="plotFormPanel" class="panel hidden">
@@ -275,7 +286,7 @@
             <h2>Clients</h2>
             <p class="muted">Add and manage client/buyer records.</p>
           </div>
-          <button id="addClientBtn" class="primary">+ Add Client</button>
+          <div class="action-group"><button class="ghost" data-open-sale-workflow>+ New Sale Entry</button><button id="addClientBtn" class="primary">+ Add Client</button></div>
         </div>
 
         <div id="clientFormPanel" class="panel hidden">
@@ -632,10 +643,56 @@
       <section id="page-users" class="page placeholder admin-page"><h2>Users</h2><p>Admin-only page placeholder.</p></section>
       <section id="page-settings" class="page placeholder admin-page"><h2>Settings</h2><p>Admin-only page placeholder.</p></section>
       <section id="page-import-backup" class="page placeholder admin-page"><h2>Import / Backup</h2><p>Admin-only page placeholder.</p></section>
+
+      <div id="saleWorkflowOverlay" class="modal-overlay hidden">
+        <div class="modal-card large-modal">
+          <div class="modal-header">
+            <div>
+              <h2>New Sale Entry</h2>
+              <p class="muted">Create client, assign available plot, create sale deal, and record token/payment once.</p>
+            </div>
+            <button id="closeSaleWorkflowBtn" class="icon-btn" type="button">×</button>
+          </div>
+
+          <form id="saleWorkflowForm" class="form-grid">
+            <div class="span-2 section-title">Client Information</div>
+            <div><label>Client Name English *</label><input id="wfClientNameEn" required /></div>
+            <div><label>Client Name Urdu</label><div class="input-with-button"><input id="wfClientNameUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="wfClientNameEn" data-translate-to="wfClientNameUr">Auto Urdu</button></div></div>
+            <div><label>Father Name English</label><input id="wfClientFatherEn" /></div>
+            <div><label>Father Name Urdu</label><div class="input-with-button"><input id="wfClientFatherUr" dir="rtl" /><button type="button" class="mini-btn" data-translate-from="wfClientFatherEn" data-translate-to="wfClientFatherUr">Auto Urdu</button></div></div>
+            <div><label>CNIC</label><input id="wfClientCnic" data-format="cnic" maxlength="15" placeholder="XXXXX-XXXXXXX-X" /></div>
+            <div><label>Phone</label><input id="wfClientPhone" data-format="phone" maxlength="12" placeholder="03XX-XXXXXXX" /></div>
+            <div class="span-2"><label>Address English</label><textarea id="wfClientAddressEn" rows="2"></textarea></div>
+            <div class="span-2"><label>Address Urdu</label><div class="input-with-button vertical"><textarea id="wfClientAddressUr" rows="2" dir="rtl"></textarea><button type="button" class="mini-btn" data-translate-from="wfClientAddressEn" data-translate-to="wfClientAddressUr">Auto Urdu</button></div></div>
+
+            <div class="span-2 section-title">Plot / Sale Information</div>
+            <div><label>Project *</label><select id="wfProjectId" required><option value="">Select project</option></select></div>
+            <div><label>Available Plot *</label><select id="wfPlotId" required><option value="">Select project first</option></select><small id="wfPlotHelp" class="muted">Only available plots from selected project will appear.</small></div>
+            <div><label>Sale Price *</label><input id="wfSalePrice" type="number" step="0.01" min="0" required /></div>
+            <div><label>Deal Date</label><input id="wfDealDate" type="date" /></div>
+            <div><label>Seller</label><select id="wfSellerId"><option value="">No seller</option></select></div>
+            <div><label>Agent</label><select id="wfAgentId"><option value="">No agent</option></select></div>
+            <div><label>Plot Status After Save</label><select id="wfPlotStatus"><option value="reserved">Reserved / Token Paid</option><option value="sold">Sold</option></select></div>
+            <div><label>Deal No</label><input id="wfDealNo" placeholder="Optional" /></div>
+
+            <div class="span-2 section-title">Token / First Payment</div>
+            <div><label>Token / Payment Amount</label><input id="wfPaymentAmount" type="number" step="0.01" min="0" placeholder="Optional" /></div>
+            <div><label>Payment Method</label><select id="wfPaymentMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option><option value="other">Other</option></select></div>
+            <div><label>Receipt No</label><input id="wfReceiptNo" /></div>
+            <div><label>Payment Register</label><select id="wfRegisterId"><option value="">Default / no register</option></select></div>
+            <div class="span-2"><label>Notes</label><textarea id="wfNotes" rows="3"></textarea></div>
+
+            <div class="span-2 workflow-warning">This form saves the payment once into the central ledger and creates one payment allocation. It does not duplicate money.</div>
+            <div class="span-2 form-actions"><button class="primary" type="submit">Save Sale Entry</button><button class="ghost" type="button" id="cancelSaleWorkflowBtn">Cancel</button></div>
+          </form>
+          <p id="saleWorkflowMessage" class="message"></p>
+        </div>
+      </div>
+
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=10"></script>
-  <script src="app.js?v=10"></script>
+  <script src="config.js?v=11"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

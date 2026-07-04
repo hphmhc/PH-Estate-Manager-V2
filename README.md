@@ -1,7 +1,9 @@
 # PH Estate Manager V2
 
-## Stage 10
+## Stage 11
 
-Adds category-smart Daily Accounts fields.
+Adds New Sale Entry workflow.
 
-When a Daily Accounts category is selected, the form shows only the relevant linked fields for that entry type, such as plot payment, car expense, office expense, case expense, commission, transfer fee, and miscellaneous.
+It creates a client, sale deal, client/deal link, plot/deal link, optional agent link, updates plot status, and creates one ledger entry plus one payment allocation if token/payment is entered.
+
+Payment is saved once only in ledger_entries.
