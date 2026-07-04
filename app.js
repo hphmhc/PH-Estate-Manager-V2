@@ -384,6 +384,7 @@ function showClientForm(client=null){const f=clientFormElements();f.panel.classL
 function hideClientForm(){const f=clientFormElements();f.form.reset();f.id.value='';f.panel.classList.add('hidden');f.message.textContent=''}
 async function loadClients(){const tbody=$('#clientsTableBody');if(!tbody)return;tbody.innerHTML='<tr><td colspan="6">Loading clients...</td></tr>';const {data,error}=await supabaseClient.from('clients').select('*').order('name_en',{ascending:true});if(error){tbody.innerHTML=`<tr><td colspan="6">Error: ${escapeHtml(error.message)}</td></tr>`;return}state.clients=sortClients(data||[]);renderClients()}
 function renderClients(){const tbody=$('#clientsTableBody');if(!tbody)return;const q=($('#clientSearch')?.value||'').toLowerCase().trim();const rows=sortClients(state.clients||[]).filter(c=>{const haystack=[c.name_en,c.name_ur,c.father_en,c.father_ur,c.cnic,c.phone,c.address_en,c.address_ur,c.notes].join(' ').toLowerCase();return !q||haystack.includes(q)});if(!rows.length){tbody.innerHTML='<tr><td colspan="6">No clients found.</td></tr>';return}tbody.innerHTML=rows.map(c=>`<tr><td data-label="Name"><strong>${escapeHtml(c.name_en||'')}</strong>${c.name_ur?`<br><small dir="rtl">${escapeHtml(c.name_ur)}</small>`:''}</td><td data-label="Father Name">${escapeHtml(c.father_en||'-')}${c.father_ur?`<br><small dir="rtl">${escapeHtml(c.father_ur)}</small>`:''}</td><td data-label="CNIC">${escapeHtml(c.cnic||'-')}</td><td data-label="Phone">${escapeHtml(c.phone||'-')}</td><td data-label="Address">${escapeHtml(c.address_en||'-')}${c.address_ur?`<br><small dir="rtl">${escapeHtml(c.address_ur)}</small>`:''}</td><td data-label="Actions"><div class="row-actions"><button class="small-btn" data-client-payments="${c.id}">Payments</button><button class="small-btn" data-client-dues="${c.id}">Dues</button><button class="small-btn" data-edit-client="${c.id}">Edit</button><button class="danger-btn" data-delete-client="${c.id}">Delete</button></div></td></tr>`).join('');$$('[data-edit-client]').forEach(btn=>btn.onclick=()=>showClientForm((state.clients||[]).find(c=>c.id===btn.dataset.editClient)));$$('[data-delete-client]').forEach(btn=>btn.onclick=()=>deleteClient(btn.dataset.deleteClient))}
+setupClientActionDelegates();
 async function saveClient(e){e.preventDefault();const f=clientFormElements();const payload={name_en:f.nameEn.value.trim(),name_ur:f.nameUr.value.trim()||null,father_en:f.fatherEn.value.trim()||null,father_ur:f.fatherUr.value.trim()||null,cnic:formatCnic(f.cnic.value.trim())||null,phone:formatPhone(f.phone.value.trim())||null,address_en:f.addressEn.value.trim()||null,address_ur:f.addressUr.value.trim()||null,notes:f.notes.value.trim()||null};if(!payload.name_en){f.message.textContent='Client name is required.';return}f.message.textContent='Saving...';let result;if(f.id.value){result=await supabaseClient.from('clients').update(payload).eq('id',f.id.value)}else{payload.created_by=state.profile?.id||null;result=await supabaseClient.from('clients').insert(payload)}if(result.error){f.message.textContent=result.error.message;return}hideClientForm();await loadClients();await refreshDashboardCounts()}
 async function deleteClient(id){if(!confirm('Delete this client? Only do this for test records.'))return;const {error}=await supabaseClient.from('clients').delete().eq('id',id);if(error){alert(error.message);return}await loadClients();await refreshDashboardCounts()}
 function setupClientsModule(){if($('#addClientBtn'))$('#addClientBtn').onclick=()=>showClientForm();if($('#cancelClientBtn'))$('#cancelClientBtn').onclick=hideClientForm;if($('#clientForm'))$('#clientForm').onsubmit=saveClient;if($('#refreshClientsBtn'))$('#refreshClientsBtn').onclick=loadClients;if($('#clientSearch'))$('#clientSearch').oninput=renderClients}
@@ -1195,7 +1196,27 @@ async function waiveClientDue(dueId){
   await refreshDashboardCounts();
 }
 
-function setupClientFinanceModule(){
+
+// Stage 13 fixed: delegated client action clicks
+function setupClientActionDelegates(){
+  const body = $('#clientsTableBody');
+  if(!body || body.dataset.delegatedClientActions === 'true') return;
+  body.dataset.delegatedClientActions = 'true';
+  body.addEventListener('click', (event)=>{
+    const payBtn = event.target.closest('[data-client-payments]');
+    if(payBtn){
+      openClientFinance(payBtn.dataset.clientPayments, 'payments');
+      return;
+    }
+    const dueBtn = event.target.closest('[data-client-dues]');
+    if(dueBtn){
+      openClientFinance(dueBtn.dataset.clientDues, 'dues');
+      return;
+    }
+  });
+}
+
+function setupClientFinanceModule(){setupClientActionDelegates();
   if($('#closeClientFinanceBtn')) $('#closeClientFinanceBtn').onclick=closeClientFinance;
   if($('#clientFinanceOverlay')) $('#clientFinanceOverlay').addEventListener('click',(event)=>{if(event.target.id==='clientFinanceOverlay')closeClientFinance()});
   $$('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>switchClientFinanceTab(btn.dataset.clientTab)));

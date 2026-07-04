@@ -18,3 +18,8 @@ New:
 
 Rule:
 Client-related entries can be started from Client page, but money is still stored once in the centralized ledger.
+
+
+## Stage 13 Fixed
+
+Fixes Client Payments/Dues buttons not opening.
