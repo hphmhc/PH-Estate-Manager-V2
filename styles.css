@@ -43,3 +43,7 @@ small[dir="rtl"],input[dir="rtl"],textarea[dir="rtl"]{text-align:right}
 .icon-btn{border:1px solid var(--line);background:#fff;border-radius:10px;font-size:24px;line-height:1;padding:4px 11px}.section-title{font-weight:900;color:var(--green-dark);background:var(--green-soft);padding:10px 12px;border-radius:12px;margin-top:6px}
 .workflow-warning{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:12px;padding:12px;font-weight:700}
 @media(max-width:900px){.workflow-panel{align-items:flex-start;flex-direction:column}.modal-overlay{padding:10px}.modal-card{padding:14px}.modal-header{align-items:flex-start}.action-group{width:100%}.action-group button{flex:1}}
+
+/* Stage 12 additions */
+.money-preview{display:block;margin-top:6px;color:var(--green-dark);font-weight:800}
+input[data-money-input]{font-weight:700}
