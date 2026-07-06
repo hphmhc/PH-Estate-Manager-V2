@@ -61,3 +61,8 @@ input[data-money-input]{font-weight:700}
 /* Stage 14 additions */
 .checkbox-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:800;color:var(--green-dark)}
 .checkbox-row input{width:auto;min-height:auto}
+
+/* Stage 15 sale deal additions */
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:12px;margin-bottom:16px}
+.detail-grid .panel{margin:0}
+@media(max-width:900px){.detail-grid{grid-template-columns:1fr}}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 14</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 15</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -84,7 +84,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 14 Status</h2><p>Custom due names and New Sale Entry payment-status workflow added.</p></div>
+        <div class="panel"><h2>Stage 15 Status</h2><p>Sale Deals page added with linked clients, plots, payment summary, and status view.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -370,7 +370,58 @@
           </div>
         </div>
       </section>
-      <section id="page-sale-deals" class="page placeholder"><h2>Sale Deals</h2><p>Coming in a later build.</p></section>
+      <section id="page-sale-deals" class="page">
+        <div class="page-actions">
+          <div>
+            <h2>Sale Deals</h2>
+            <p class="muted">View sale deals created from New Sale Entry, with linked clients, plots, and payment summaries.</p>
+          </div>
+          <button class="primary" data-open-sale-workflow>+ New Sale Entry</button>
+        </div>
+
+        <div id="saleDealSummaryCards" class="cards mini-cards">
+          <div class="card"><p>Total Sale Value</p><h2 id="sdTotalSaleValue">Rs. 0</h2><small>Active/completed deals</small></div>
+          <div class="card"><p>Total Received</p><h2 id="sdTotalReceived">Rs. 0</h2><small>Active allocated payments</small></div>
+          <div class="card"><p>Total Remaining</p><h2 id="sdTotalRemaining">Rs. 0</h2><small>Sale value - received</small></div>
+          <div class="card"><p>Deals</p><h2 id="sdDealCount">0</h2><small>Total deals</small></div>
+        </div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <input id="saleDealSearch" placeholder="Search deal no, client, plot, project..." />
+            <select id="saleDealStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="saleDealProjectFilter">
+              <option value="">All Projects</option>
+            </select>
+            <button id="refreshSaleDealsBtn" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Deal</th>
+                  <th>Project</th>
+                  <th>Client(s)</th>
+                  <th>Plot(s)</th>
+                  <th>Sale Value</th>
+                  <th>Received</th>
+                  <th>Remaining</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="saleDealsTableBody">
+                <tr><td colspan="9">Loading sale deals...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       <section id="page-agents" class="page">
         <div class="page-actions">
           <div>
@@ -645,6 +696,60 @@
       <section id="page-import-backup" class="page placeholder admin-page"><h2>Import / Backup</h2><p>Admin-only page placeholder.</p></section>
 
 
+
+      <div id="saleDealDetailOverlay" class="modal-overlay hidden">
+        <div class="modal-card large-modal">
+          <div class="modal-header">
+            <div>
+              <h2 id="saleDealDetailTitle">Sale Deal</h2>
+              <p id="saleDealDetailSubtitle" class="muted">Deal details and linked payment summary.</p>
+            </div>
+            <button id="closeSaleDealDetailBtn" class="icon-btn" type="button">×</button>
+          </div>
+
+          <div class="client-finance-summary">
+            <div class="card"><p>Sale Value</p><h2 id="sddSaleValue">Rs. 0</h2><small>Plot sale prices</small></div>
+            <div class="card"><p>Received</p><h2 id="sddReceived">Rs. 0</h2><small>Active allocated payments</small></div>
+            <div class="card"><p>Remaining</p><h2 id="sddRemaining">Rs. 0</h2><small>Sale value - received</small></div>
+            <div class="card"><p>Status</p><h2 id="sddStatus">-</h2><small>Deal status</small></div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="panel">
+              <h3>Linked Clients</h3>
+              <div id="sddClients">-</div>
+            </div>
+            <div class="panel">
+              <h3>Linked Plots</h3>
+              <div id="sddPlots">-</div>
+            </div>
+            <div class="panel">
+              <h3>Agent(s)</h3>
+              <div id="sddAgents">-</div>
+            </div>
+            <div class="panel">
+              <h3>Notes</h3>
+              <div id="sddNotes">-</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="page-actions small-page-actions">
+              <div>
+                <h3>Payments</h3>
+                <p class="muted">Payments are central ledger entries linked through payment allocations.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Status</th></tr></thead>
+                <tbody id="sddPaymentsBody"><tr><td colspan="6">No payments loaded.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="clientFinanceOverlay" class="modal-overlay hidden">
         <div class="modal-card large-modal">
           <div class="modal-header">
@@ -831,7 +936,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=14"></script>
-  <script src="app.js?v=14"></script>
+  <script src="config.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

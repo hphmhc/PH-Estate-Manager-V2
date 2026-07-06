@@ -41,12 +41,12 @@ function setupSessionActivityTracking(){
   }, 60000);
 }
 
-const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[],cases:[],ledgerEntries:[],accountCategories:[],registers:[],saleDeals:[],clientFinance:{client:null,deals:[],payments:[],dues:[]}};
+const state={user:null,profile:null,activePage:"dashboard",pageHistory:["dashboard"],isNavigatingFromPop:false,projects:[],plots:[],clients:[],sellers:[],agents:[],cases:[],ledgerEntries:[],accountCategories:[],registers:[],saleDeals:[],saleDealsView:[],clientFinance:{client:null,deals:[],payments:[],dues:[]}};
 const pageTitles={dashboard:"Dashboard",projects:"Projects",plots:"Plots",clients:"Clients",sellers:"Sellers","sale-deals":"Sale Deals",agents:"Agents",cases:"Cases","daily-accounts":"Daily Accounts",documents:"Documents",reports:"Reports",users:"Users",settings:"Settings","import-backup":"Import / Backup"};
 function setMessage(m){$("#loginMessage").textContent=m||""}function showApp(){$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden")}function showLogin(){$("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden")}
 function updateUserUI(){const email=state.user?.email||"User";const name=state.profile?.full_name||email;const role=state.profile?.role||"manager";$("#userName").textContent=name;$("#userRole").textContent=role;const isAdmin=role==="admin";$$('.admin-only').forEach(el=>el.style.display=isAdmin?"":"none");if(!isAdmin&&["users","settings","import-backup"].includes(state.activePage)){goPage("dashboard")}}
 async function loadProfile(){const {data,error}=await supabaseClient.from("profiles").select("*").eq("auth_user_id",state.user.id).maybeSingle();if(error||!data){console.warn("Profile table not ready or no profile. Using temporary admin profile.",error?.message||"");state.profile={full_name:state.user.email,email:state.user.email,role:"admin",status:"active"};return}state.profile=data}
-function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="sellers")loadSellers();if(page==="agents")loadAgents();if(page==="cases")loadCases();if(page==="daily-accounts")loadLedgerEntries();if(page==="dashboard")refreshDashboardCounts()}
+function renderPage(page){$$('.page').forEach(s=>s.classList.remove('active'));const target=$(`#page-${page}`);if(target)target.classList.add('active');$$('.nav-item').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));$("#pageTitle").textContent=pageTitles[page]||"PH Estate Manager V2";$("#breadcrumb").textContent=pageTitles[page]||page;sessionStorage.setItem("phv2ActivePage",page);if(page==="projects")loadProjects();if(page==="plots")loadPlots();if(page==="clients")loadClients();if(page==="sellers")loadSellers();if(page==="sale-deals")loadSaleDealsPage();if(page==="agents")loadAgents();if(page==="cases")loadCases();if(page==="daily-accounts")loadLedgerEntries();if(page==="dashboard")refreshDashboardCounts()}
 function goPage(page,options={}){if(!pageTitles[page])page="dashboard";const previous=state.activePage||"dashboard";state.activePage=page;if(!options.fromBack&&previous!==page){state.pageHistory.push(page);sessionStorage.setItem("phv2PageHistory",JSON.stringify(state.pageHistory));if(!state.isNavigatingFromPop)history.pushState({phv2:true,page},"",`#${page}`)}renderPage(page)}
 function setupNavigation(){$$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{goPage(btn.dataset.page);$("#sidebar").classList.remove("open")}));$("#menuBtn").addEventListener('click',()=>$("#sidebar").classList.toggle("open"));window.addEventListener('popstate',()=>{if(!state.user)return;if((state.activePage||"dashboard")!=="dashboard"&&state.pageHistory.length>1){state.pageHistory.pop();const target=state.pageHistory[state.pageHistory.length-1]||"dashboard";state.isNavigatingFromPop=true;goPage(target,{fromBack:true});state.isNavigatingFromPop=false;history.pushState({phv2:true,page:target},"",`#${target}`);return}if((state.activePage||"dashboard")==="dashboard")signOut()})}
 async function signIn(email,password){setMessage("Logging in...");const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error){setMessage(error.message);return}state.user=data.user;markSessionActivity();await loadProfile();showApp();updateUserUI();const savedPage=sessionStorage.getItem("phv2ActivePage")||"dashboard";state.activePage=savedPage;state.pageHistory=["dashboard",savedPage].filter((v,i,a)=>i===0||v!==a[i-1]);renderPage(savedPage);history.replaceState({phv2:true,page:savedPage},"",`#${savedPage}`);setMessage("")}
@@ -1267,4 +1267,159 @@ function setupClientFinanceModule(){setupClientActionDelegates();
   if($('#clientDueForm')) $('#clientDueForm').onsubmit=saveClientDue;
 }
 
-function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupCasesModule();setupLedgerModule();setupSaleWorkflowModule();setupClientFinanceModule();setupInputFormatters();setupMoneyInputs();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();
+
+// -----------------------------
+// Stage 15: Sale Deals module
+// -----------------------------
+async function loadSaleDealsExpanded(){
+  await Promise.all([ensureProjectsLoaded(), ensurePlotsLoaded(), ensureClientsLoaded(), ensureSellersLoaded(), ensureAgentsLoaded()]);
+  const [
+    {data:deals,error:dealsError},
+    {data:dealClients,error:dealClientsError},
+    {data:dealPlots,error:dealPlotsError},
+    {data:dealAgents,error:dealAgentsError},
+    {data:allocations,error:allocationsError},
+    {data:ledger,error:ledgerError}
+  ] = await Promise.all([
+    supabaseClient.from('sale_deals').select('*').order('deal_date',{ascending:false}),
+    supabaseClient.from('sale_deal_clients').select('*'),
+    supabaseClient.from('sale_deal_plots').select('*'),
+    supabaseClient.from('sale_deal_agents').select('*'),
+    supabaseClient.from('payment_allocations').select('*'),
+    supabaseClient.from('ledger_entries').select('*')
+  ]);
+
+  if(dealsError) throw dealsError;
+  if(dealClientsError) throw dealClientsError;
+  if(dealPlotsError) throw dealPlotsError;
+  if(dealAgentsError) throw dealAgentsError;
+  if(allocationsError) throw allocationsError;
+  if(ledgerError) throw ledgerError;
+
+  const ledgerById = new Map((ledger||[]).map(e=>[e.id,e]));
+  const expanded=(deals||[]).map(deal=>{
+    const clients=(dealClients||[]).filter(x=>x.sale_deal_id===deal.id).map(link=>({
+      ...link,
+      client:(state.clients||[]).find(c=>c.id===link.client_id)
+    }));
+    const plots=(dealPlots||[]).filter(x=>x.sale_deal_id===deal.id).map(link=>({
+      ...link,
+      plot:(state.plots||[]).find(p=>p.id===link.plot_id)
+    }));
+    const agents=(dealAgents||[]).filter(x=>x.sale_deal_id===deal.id).map(link=>({
+      ...link,
+      agent:(state.agents||[]).find(a=>a.id===link.agent_id)
+    }));
+    const payments=(allocations||[]).filter(a=>a.sale_deal_id===deal.id).map(a=>({
+      ...a,
+      ledger:ledgerById.get(a.ledger_entry_id)
+    }));
+    const totalSale=plots.reduce((sum,p)=>sum+Number(p.plot_sale_price||0),0);
+    const received=payments.filter(p=>p.ledger?.status==='active').reduce((sum,p)=>sum+Number(p.allocated_amount||0),0);
+    const remaining=Math.max(totalSale-received,0);
+    const clientNames=clients.map(c=>c.client?.name_en||'-').join(', ');
+    const plotLabels=plots.map(p=>p.plot?getPlotLabel(p.plot.id):'-').join(', ');
+    const agentNames=agents.map(a=>a.agent?.name_en||'-').join(', ');
+    return {...deal,_clients:clients,_plots:plots,_agents:agents,_payments:payments,_totalSale:totalSale,_received:received,_remaining:remaining,_clientNames:clientNames,_plotLabels:plotLabels,_agentNames:agentNames};
+  });
+
+  state.saleDealsView=expanded.sort((a,b)=>naturalCompare(b.deal_date,a.deal_date)||naturalCompare(a.deal_no,b.deal_no));
+  return state.saleDealsView;
+}
+
+async function loadSaleDealsPage(){
+  const tbody=$('#saleDealsTableBody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="9">Loading sale deals...</td></tr>';
+  try{
+    await loadSaleDealsExpanded();
+    populateSaleDealFilters();
+    renderSaleDealsPage();
+    updateSaleDealsSummary();
+  }catch(err){
+    tbody.innerHTML=`<tr><td colspan="9">Error: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function populateSaleDealFilters(){
+  const projectOptions='<option value="">All Projects</option>' + sortProjects(state.projects||[]).map(p=>`<option value="${p.id}">${escapeHtml(p.name||'')}</option>`).join('');
+  if($('#saleDealProjectFilter')) $('#saleDealProjectFilter').innerHTML=projectOptions;
+}
+
+function renderSaleDealsPage(){
+  const tbody=$('#saleDealsTableBody');
+  if(!tbody) return;
+  const q=($('#saleDealSearch')?.value||'').toLowerCase().trim();
+  const statusFilter=$('#saleDealStatusFilter')?.value||'';
+  const projectFilter=$('#saleDealProjectFilter')?.value||'';
+  const rows=(state.saleDealsView||[]).filter(d=>{
+    const haystack=[d.deal_no,d.deal_date,d.deal_status,getProjectName(d.project_id),d._clientNames,d._plotLabels,d._agentNames,d.notes].join(' ').toLowerCase();
+    return (!q||haystack.includes(q)) && (!statusFilter||d.deal_status===statusFilter) && (!projectFilter||d.project_id===projectFilter);
+  });
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="9">No sale deals found.</td></tr>';return}
+  tbody.innerHTML=rows.map(d=>`<tr>
+    <td data-label="Deal"><strong>${escapeHtml(d.deal_no||'Deal')}</strong><br><small>${escapeHtml(d.deal_date||'-')}</small></td>
+    <td data-label="Project">${escapeHtml(getProjectName(d.project_id))}</td>
+    <td data-label="Client(s)">${escapeHtml(d._clientNames||'-')}</td>
+    <td data-label="Plot(s)">${escapeHtml(d._plotLabels||'-')}</td>
+    <td data-label="Sale Value">${formatCurrency(d._totalSale)}</td>
+    <td data-label="Received">${formatCurrency(d._received)}</td>
+    <td data-label="Remaining">${formatCurrency(d._remaining)}</td>
+    <td data-label="Status"><span class="status-badge ${escapeHtml(d.deal_status||'active')}">${escapeHtml(d.deal_status||'active')}</span></td>
+    <td data-label="Actions"><div class="row-actions"><button class="small-btn" data-view-sale-deal="${d.id}">View</button></div></td>
+  </tr>`).join('');
+  $$('[data-view-sale-deal]').forEach(btn=>btn.onclick=()=>openSaleDealDetail(btn.dataset.viewSaleDeal));
+}
+
+function updateSaleDealsSummary(){
+  const rows=(state.saleDealsView||[]).filter(d=>d.deal_status!=='cancelled');
+  const totalSale=rows.reduce((sum,d)=>sum+Number(d._totalSale||0),0);
+  const received=rows.reduce((sum,d)=>sum+Number(d._received||0),0);
+  const remaining=Math.max(totalSale-received,0);
+  if($('#sdTotalSaleValue')) $('#sdTotalSaleValue').textContent=formatCurrency(totalSale);
+  if($('#sdTotalReceived')) $('#sdTotalReceived').textContent=formatCurrency(received);
+  if($('#sdTotalRemaining')) $('#sdTotalRemaining').textContent=formatCurrency(remaining);
+  if($('#sdDealCount')) $('#sdDealCount').textContent=rows.length;
+}
+
+function openSaleDealDetail(dealId){
+  const deal=(state.saleDealsView||[]).find(d=>d.id===dealId);
+  if(!deal){alert('Sale deal not found. Refresh and try again.');return}
+  $('#saleDealDetailOverlay').classList.remove('hidden');
+  $('#saleDealDetailTitle').textContent=deal.deal_no||'Sale Deal';
+  $('#saleDealDetailSubtitle').textContent=[getProjectName(deal.project_id),deal.deal_date].filter(Boolean).join(' | ');
+  $('#sddSaleValue').textContent=formatCurrency(deal._totalSale);
+  $('#sddReceived').textContent=formatCurrency(deal._received);
+  $('#sddRemaining').textContent=formatCurrency(deal._remaining);
+  $('#sddStatus').textContent=deal.deal_status||'-';
+  $('#sddClients').innerHTML=deal._clients.length?deal._clients.map(c=>`<p><strong>${escapeHtml(c.client?.name_en||'-')}</strong><br><small>${escapeHtml(c.client?.phone||'')} ${escapeHtml(c.client?.cnic||'')}</small></p>`).join(''):'-';
+  $('#sddPlots').innerHTML=deal._plots.length?deal._plots.map(p=>`<p><strong>${escapeHtml(p.plot?getPlotLabel(p.plot.id):'-')}</strong><br><small>${formatCurrency(p.plot_sale_price)} · ${escapeHtml(p.plot_deal_status||'-')}</small></p>`).join(''):'-';
+  $('#sddAgents').innerHTML=deal._agents.length?deal._agents.map(a=>`<p><strong>${escapeHtml(a.agent?.name_en||'-')}</strong><br><small>${escapeHtml(a.role_in_deal||'')}</small></p>`).join(''):'-';
+  $('#sddNotes').textContent=deal.notes||'-';
+  const body=$('#sddPaymentsBody');
+  const payments=deal._payments||[];
+  if(!payments.length){body.innerHTML='<tr><td colspan="6">No payments found.</td></tr>';return}
+  body.innerHTML=payments.map(p=>`<tr class="${p.ledger?.status==='voided'?'voided-row':''}">
+    <td data-label="Date">${escapeHtml(p.ledger?.entry_date||'-')}</td>
+    <td data-label="Client">${escapeHtml(getClientName(p.client_id))}</td>
+    <td data-label="Amount">${formatCurrency(p.allocated_amount)}</td>
+    <td data-label="Method">${escapeHtml(p.ledger?.payment_method||'-')}</td>
+    <td data-label="Receipt">${escapeHtml(p.ledger?.receipt_no||'-')}</td>
+    <td data-label="Status"><span class="status-badge ${escapeHtml(p.ledger?.status||'active')}">${escapeHtml(p.ledger?.status||'active')}</span></td>
+  </tr>`).join('');
+}
+
+function closeSaleDealDetail(){
+  if($('#saleDealDetailOverlay')) $('#saleDealDetailOverlay').classList.add('hidden');
+}
+
+function setupSaleDealsModule(){
+  if($('#refreshSaleDealsBtn')) $('#refreshSaleDealsBtn').onclick=loadSaleDealsPage;
+  if($('#saleDealSearch')) $('#saleDealSearch').oninput=renderSaleDealsPage;
+  if($('#saleDealStatusFilter')) $('#saleDealStatusFilter').onchange=renderSaleDealsPage;
+  if($('#saleDealProjectFilter')) $('#saleDealProjectFilter').onchange=renderSaleDealsPage;
+  if($('#closeSaleDealDetailBtn')) $('#closeSaleDealDetailBtn').onclick=closeSaleDealDetail;
+  if($('#saleDealDetailOverlay')) $('#saleDealDetailOverlay').addEventListener('click',(event)=>{if(event.target.id==='saleDealDetailOverlay')closeSaleDealDetail()});
+}
+
+function setupAuthForm(){$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();await signIn($("#loginEmail").value.trim(),$("#loginPassword").value)});$("#logoutBtn").addEventListener("click",signOut)}async function init(){setupNavigation();setupAuthForm();setupProjectsModule();setupPlotsModule();setupClientsModule();setupSellersModule();setupAgentsModule();setupCasesModule();setupLedgerModule();setupSaleWorkflowModule();setupClientFinanceModule();setupSaleDealsModule();setupInputFormatters();setupMoneyInputs();setupUrduButtons();setupSessionActivityTracking();await restoreSession();refreshDashboardCounts()}init();

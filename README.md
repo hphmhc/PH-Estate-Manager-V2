@@ -1,12 +1,20 @@
 # PH Estate Manager V2
 
-## Stage 14
+## Stage 15
 
-Adds:
-- Custom due name/type input instead of fixed dropdown.
-- New Sale Entry payment status workflow:
-  - Fully paid checkbox
-  - Token/payment amount = Partially Paid
-  - Empty token/payment + unchecked fully paid = Payment Pending
-- Fully paid automatically sets payment amount to sale price and plot status to Sold.
-- Central ledger remains the source for money.
+Adds Sale Deals page.
+
+Includes:
+- Sale deals list
+- Search sale deals
+- Filter by status
+- Filter by project
+- View linked clients
+- View linked plots
+- View agents
+- Sale value / received / remaining summary
+- Sale deal detail modal
+- Payment list per sale deal
+
+Purpose:
+Sale Deals now acts as the record-control page for deals created through New Sale Entry.
