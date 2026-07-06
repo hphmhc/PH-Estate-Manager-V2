@@ -57,3 +57,7 @@ input[data-money-input]{font-weight:700}
 .client-tab.active{display:block}
 .small-page-actions{margin-top:4px}
 @media(max-width:900px){.client-finance-summary{grid-template-columns:1fr}.tabs{overflow:auto}.tab-btn{white-space:nowrap}}
+
+/* Stage 14 additions */
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:800;color:var(--green-dark)}
+.checkbox-row input{width:auto;min-height:auto}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PH Estate Manager V2</title>
-  <link rel="stylesheet" href="styles.css?v=13fix" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
   <div id="loginView" class="login-screen">
@@ -31,7 +31,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand-row sidebar-brand">
         <div class="logo">PH</div>
-        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 13</small></div>
+        <div><h2>PH Estate<br />Manager V2</h2><small>Development Stage 14</small></div>
       </div>
       <nav class="nav">
         <button class="nav-item active" data-page="dashboard">Dashboard</button>
@@ -84,7 +84,7 @@
           <div class="card wide"><p>Money Paid / Expenses</p><h2>Rs. 0</h2><small>Land purchase + transfer fees + commissions + office/case expenses</small></div>
           <div class="card"><p>Payables</p><h2>Rs. 0</h2><small>Commission remaining</small></div>
         </div>
-        <div class="panel"><h2>Stage 13 Status</h2><p>Client payments and dues workflow added. Client-related money can now be entered from the Client page while still saving into the central ledger.</p></div>
+        <div class="panel"><h2>Stage 14 Status</h2><p>Custom due names and New Sale Entry payment-status workflow added.</p></div>
       </section>
 
       <section id="page-projects" class="page">
@@ -742,11 +742,8 @@
               <form id="clientDueForm" class="form-grid">
                 <input type="hidden" id="clientDueClientId" />
                 <div>
-                  <label>Due Type</label>
-                  <select id="clientDueType">
-                    <option value="security_fee">Security Fee</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <label>Due Name / Type</label>
+                  <input id="clientDueType" placeholder="Example: Security fee, file charges, registry dues" />
                 </div>
                 <div>
                   <label>Linked Deal / Plot</label>
@@ -818,6 +815,7 @@
             <div class="span-2 section-title">Token / First Payment</div>
             <div><label>Token / Payment Amount</label><input id="wfPaymentAmount" data-money-input inputmode="numeric" placeholder="Optional" />
               <small id="wfRemainingPreview" class="money-preview">Remaining will show after sale price/payment are entered.</small></div>
+            <div><label>Payment Status</label><label class="checkbox-row"><input id="wfFullyPaid" type="checkbox" /> Fully paid</label><small id="wfPaymentStatusPreview" class="money-preview">Payment pending</small></div>
             <div><label>Payment Method</label><select id="wfPaymentMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option><option value="other">Other</option></select></div>
             <div><label>Receipt No</label><input id="wfReceiptNo" /></div>
             <div><label>Payment Register</label><select id="wfRegisterId"><option value="">Default / no register</option></select></div>
@@ -833,7 +831,7 @@
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=13fix"></script>
-  <script src="app.js?v=13fix"></script>
+  <script src="config.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
