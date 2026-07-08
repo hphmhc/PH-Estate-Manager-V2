@@ -1,18 +1,20 @@
 # PH Estate Manager V2
-## Stage 16
+## Stage 17
 
-Hotfix for New Sale Entry / Sale Deals workflow.
+Adds Case Money workflow.
 
-Fixes:
-- Fixed `workflowPaymentStatus is not defined` error when saving New Sale Entry.
-- Fully Paid checkbox now safely computes sale workflow status during save.
-- Fully Paid sale records payment amount as full sale price.
-- Partial/token sale continues to save only the entered token amount.
-- Payment still saves once into `ledger_entries` and once into `payment_allocations`.
+Includes:
+- Adds a Money button to each Case row.
+- Case-related income or expense can be entered from the Case page.
+- Case money saves once into the central `ledger_entries` table.
+- Case money appears automatically in Daily Accounts.
+- Case money links to the selected case and also carries linked project, plot, client, and seller from the case record.
+- Case modal shows received, paid/expense, net, and ledger history.
+- Case ledger entries can be voided instead of deleted.
 
-Files changed:
-- `config.js` includes the Stage 16 marker and safe workflow payment status bridge.
-- `README.md` updated to Stage 16.
+Important rule:
+- The ledger remains the source of truth.
+- Case money is not duplicated anywhere else.
 
-Main test:
-- Create one pending sale, one partial/token sale, and one fully paid sale from New Sale Entry.
+Test URL:
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=17
