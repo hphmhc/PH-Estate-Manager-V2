@@ -10,6 +10,9 @@ Fixes:
 - Partial/token sale continues to save only the entered token amount.
 - Payment still saves once into `ledger_entries` and once into `payment_allocations`.
 
-Note:
-- `index.html`, `styles.css`, and `config.js` are unchanged from Stage 15.
-- Main changed file: `app.js`.
+Files changed:
+- `config.js` includes the Stage 16 marker and safe workflow payment status bridge.
+- `README.md` updated to Stage 16.
+
+Main test:
+- Create one pending sale, one partial/token sale, and one fully paid sale from New Sale Entry.
