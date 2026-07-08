@@ -22,3 +22,10 @@ try {
 } catch (err) {
   window.workflowPaymentStatus = "payment_pending";
 }
+
+// Stage marker display patch. index.html still has the old static Stage 15 text,
+// so this updates the sidebar after the page loads.
+document.addEventListener("DOMContentLoaded", () => {
+  const sidebarStageLabel = document.querySelector(".sidebar-brand small");
+  if (sidebarStageLabel) sidebarStageLabel.textContent = "Development Stage 16";
+});
