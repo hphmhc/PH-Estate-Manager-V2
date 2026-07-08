@@ -1,20 +1,15 @@
 # PH Estate Manager V2
+## Stage 16
 
-## Stage 15
+Hotfix for New Sale Entry / Sale Deals workflow.
 
-Adds Sale Deals page.
+Fixes:
+- Fixed `workflowPaymentStatus is not defined` error when saving New Sale Entry.
+- Fully Paid checkbox now safely computes sale workflow status during save.
+- Fully Paid sale records payment amount as full sale price.
+- Partial/token sale continues to save only the entered token amount.
+- Payment still saves once into `ledger_entries` and once into `payment_allocations`.
 
-Includes:
-- Sale deals list
-- Search sale deals
-- Filter by status
-- Filter by project
-- View linked clients
-- View linked plots
-- View agents
-- Sale value / received / remaining summary
-- Sale deal detail modal
-- Payment list per sale deal
-
-Purpose:
-Sale Deals now acts as the record-control page for deals created through New Sale Entry.
+Note:
+- `index.html`, `styles.css`, and `config.js` are unchanged from Stage 15.
+- Main changed file: `app.js`.
