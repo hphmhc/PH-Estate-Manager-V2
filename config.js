@@ -1,6 +1,6 @@
 const PH_CONFIG = {
   appName: "PH Estate Manager V2",
-  stage: "stage-20",
+  stage: "stage-21",
   supabaseUrl: "https://rxoqinweqyrfhgdauokd.supabase.co",
   supabasePublishableKey: "sb_publishable_tsdi2vctaisygqts6iFogA_RMwFNlj4"
 };
@@ -15,377 +15,109 @@ try {
   });
 } catch { window.workflowPaymentStatus = "payment_pending"; }
 
-(function stage20(){
-  const STAGE = "Development Stage 20";
+(function stage21(){
+  const STAGE = "Development Stage 21";
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = v => String(v ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
   const fmt = v => "Rs. " + Number(v || 0).toLocaleString("en-PK");
-  const money = v => Number(String(v ?? "").replace(/,/g, "").replace(/[^0-9.]/g, "")) || 0;
+  const num = v => Number(String(v ?? "").replace(/,/g, "").replace(/[^0-9.]/g, "")) || 0;
   const today = () => new Date().toISOString().slice(0,10);
-  let activeSaleDealId = null;
-  let activeSaleDeal = null;
-  let activeCase = null;
-  let activeAgent = null;
+  let activeSeller = null, activeAgent = null, activeDealId = null, activeDeal = null;
   let activeAgentDeals = [];
 
   function ready(){ return typeof supabaseClient !== "undefined" && typeof state !== "undefined"; }
-  function setStageLabel(){
-    const label = $(".sidebar-brand small");
-    if(label) label.textContent = STAGE;
+  function label(){
+    const l = $(".sidebar-brand small");
+    if(l) l.textContent = STAGE;
     const h = $$("#page-dashboard .panel h2").find(x => x.textContent.includes("Stage"));
     if(h){
-      h.textContent = "Stage 20 Status";
+      h.textContent = "Stage 21 Status";
       const p = h.parentElement?.querySelector("p");
-      if(p) p.textContent = "Agent Commission workflow added. Commission payments can now be entered from the Agent page and saved once into Daily Accounts.";
+      if(p) p.textContent = "Seller Payments workflow added. Seller/land payments can now be saved from the Seller page into Daily Accounts.";
     }
   }
-  async function callIfExists(name){ try { if(typeof eval("typeof " + name) !== "undefined") await eval(name + "()").catch(()=>{}); } catch {} }
-  async function ensureBase(){
-    await callIfExists("ensureProjectsLoaded");
-    await callIfExists("ensurePlotsLoaded");
-    await callIfExists("ensureClientsLoaded");
-    await callIfExists("ensureSellersLoaded");
-    await callIfExists("ensureAgentsLoaded");
-    await callIfExists("ensureAccountCategoriesLoaded");
-    await callIfExists("ensureRegistersLoaded");
+  async function call(name){ try{ if(typeof eval("typeof "+name) !== "undefined") await eval(name+"()").catch(()=>{}); }catch{} }
+  async function ensure(){
+    await call("ensureProjectsLoaded"); await call("ensurePlotsLoaded"); await call("ensureClientsLoaded"); await call("ensureSellersLoaded"); await call("ensureAgentsLoaded"); await call("ensureAccountCategoriesLoaded"); await call("ensureRegistersLoaded");
   }
   function projectName(id){ return typeof getProjectName === "function" ? getProjectName(id) : "-"; }
   function plotLabel(id){ return typeof getPlotLabel === "function" ? getPlotLabel(id) : "-"; }
   function clientName(id){ return typeof getClientName === "function" ? getClientName(id) : "-"; }
-  function sellerName(id){ return typeof getSellerName === "function" ? getSellerName(id) : "-"; }
+  function sellerName(id){ const s=(state.sellers||[]).find(x=>x.id===id); return s?.name_en || "-"; }
   function agentName(id){ const a=(state.agents||[]).find(x=>x.id===id); return a?.name_en || "-"; }
-  function categoryName(id){ return typeof getCategoryName === "function" ? getCategoryName(id) : "-"; }
-  function formatInput(el){ if(el && typeof formatMoneyInputValue === "function") el.value = formatMoneyInputValue(el.value); }
+  function catName(id){ return typeof getCategoryName === "function" ? getCategoryName(id) : "-"; }
+  function moneyInput(el){ if(el && typeof formatMoneyInputValue === "function") el.value = formatMoneyInputValue(el.value); }
   function registerOptions(){ return `<option value="">Default / no register</option>` + (state.registers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.name||"")}</option>`).join(""); }
-  function plotPaymentCategory(){ return (state.accountCategories||[]).find(c=>String(c.code||"").toUpperCase()==="PLOT_PAYMENT") || (state.accountCategories||[]).find(c=>String(c.name||"").toLowerCase().includes("plot payment")); }
-  function commissionCategory(){ return (state.accountCategories||[]).find(c=>String(c.code||"").toUpperCase().includes("COMMISSION")) || (state.accountCategories||[]).find(c=>String(c.name||"").toLowerCase().includes("commission")); }
-
+  function plotOptions(noText="No plot") { return `<option value="">${esc(noText)}</option>` + (state.plots||[]).map(p=>`<option value="${esc(p.id)}">${esc(plotLabel(p.id))}</option>`).join(""); }
+  function categoryBy(words){
+    const cats = state.accountCategories || [];
+    return cats.find(c => words.some(w => String(c.code||"").toLowerCase().includes(w))) || cats.find(c => words.some(w => String(c.name||"").toLowerCase().includes(w)));
+  }
   function addCss(){
-    if($("#stage20Css")) return;
+    if($("#stage21Css")) return;
     const s=document.createElement("style");
-    s.id="stage20Css";
-    s.textContent=`.stage20-modal{position:fixed;inset:0;background:rgba(0,0,0,.46);z-index:2147483000!important;display:grid;place-items:center;padding:18px}.stage20-modal.hidden{display:none!important}.stage20-box{width:min(1000px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.28)}.stage20-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.stage20-actions{display:flex;gap:8px;flex-wrap:wrap}.stage20-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.stage20-span{grid-column:span 2}.stage20-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.stage20-card,.stage20-detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fafc}.stage20-card small,.stage20-detail small{display:block;color:var(--muted);font-weight:800;margin-bottom:4px}.stage20-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:12px;font-weight:700}.stage20-badge{display:block;margin-top:7px;color:#065f46;font-weight:800;font-size:12px;line-height:1.4}@media(max-width:900px){.stage20-grid,.stage20-cards{grid-template-columns:1fr}.stage20-span{grid-column:span 1}.stage20-head{flex-direction:column}}`;
+    s.id="stage21Css";
+    s.textContent=`.stage21-modal{position:fixed;inset:0;background:rgba(0,0,0,.46);z-index:2147483000!important;display:grid;place-items:center;padding:18px}.stage21-modal.hidden{display:none!important}.stage21-box{width:min(1000px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.28)}.stage21-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.stage21-actions{display:flex;gap:8px;flex-wrap:wrap}.stage21-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.stage21-span{grid-column:span 2}.stage21-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.stage21-card,.stage21-detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fafc}.stage21-card small,.stage21-detail small{display:block;color:var(--muted);font-weight:800;margin-bottom:4px}.stage21-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:12px;font-weight:700}.stage21-badge{display:block;margin-top:7px;color:#065f46;font-weight:800;font-size:12px;line-height:1.4}@media(max-width:900px){.stage21-grid,.stage21-cards{grid-template-columns:1fr}.stage21-span{grid-column:span 1}.stage21-head{flex-direction:column}}`;
     document.head.appendChild(s);
   }
 
-  // ---------------- Sale Deal Payment preservation ----------------
-  function ensureSalePaymentModal(){
-    addCss();
-    if($("#stage20SalePaymentModal")) return;
-    const modal=document.createElement("div");
-    modal.id="stage20SalePaymentModal";
-    modal.className="stage20-modal hidden";
-    modal.innerHTML=`<div class="stage20-box"><div class="stage20-head"><div><h2>Add Sale Deal Payment</h2><p class="muted" id="stage20SaleTitle">Save payment once into ledger and allocation.</p></div><button class="ghost" id="stage20SaleClose" type="button">Close</button></div><div class="stage20-cards" id="stage20SaleSummary"></div><form id="stage20SaleForm" class="stage20-grid"><div><label>Date *</label><input id="stage20SaleDate" type="date" required></div><div><label>Amount *</label><input id="stage20SaleAmount" inputmode="numeric" required></div><div><label>Client *</label><select id="stage20SaleClient" required></select></div><div><label>Plot *</label><select id="stage20SalePlot" required></select></div><div><label>Payment Method</label><select id="stage20SaleMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Payment Register</label><select id="stage20SaleRegister"></select></div><div><label>Receipt No</label><input id="stage20SaleReceipt"></div><div><label>Description</label><input id="stage20SaleDesc"></div><div class="stage20-span stage20-note">This creates one ledger entry and one payment allocation. It does not duplicate money.</div><div class="stage20-span form-actions"><button class="primary" type="submit">Save Payment</button><button class="ghost" id="stage20SaleCancel" type="button">Cancel</button></div></form><p id="stage20SaleMsg" class="message"></p><h3>Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage20SaleRows"><tr><td colspan="7">No sale selected.</td></tr></tbody></table></div></div>`;
-    document.body.appendChild(modal);
-    $("#stage20SaleClose").onclick=closeSalePaymentModal;
-    $("#stage20SaleCancel").onclick=closeSalePaymentModal;
-    $("#stage20SaleAmount").oninput=e=>formatInput(e.target);
-    $("#stage20SaleForm").onsubmit=saveSalePayment;
-    modal.onclick=e=>{ if(e.target.id==="stage20SalePaymentModal") closeSalePaymentModal(); };
+  // Sale Deal Add Payment preserved from Stage 19.2/20
+  function ensureSaleModal(){
+    addCss(); if($("#stage21SaleModal")) return;
+    const m=document.createElement("div"); m.id="stage21SaleModal"; m.className="stage21-modal hidden";
+    m.innerHTML=`<div class="stage21-box"><div class="stage21-head"><div><h2>Add Sale Deal Payment</h2><p class="muted" id="stage21SaleTitle">Save payment once into ledger and allocation.</p></div><button class="ghost" id="stage21SaleClose" type="button">Close</button></div><div class="stage21-cards" id="stage21SaleSummary"></div><form id="stage21SaleForm" class="stage21-grid"><div><label>Date *</label><input id="stage21SaleDate" type="date" required></div><div><label>Amount *</label><input id="stage21SaleAmount" inputmode="numeric" required></div><div><label>Client *</label><select id="stage21SaleClient" required></select></div><div><label>Plot *</label><select id="stage21SalePlot" required></select></div><div><label>Payment Method</label><select id="stage21SaleMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Payment Register</label><select id="stage21SaleRegister"></select></div><div><label>Receipt No</label><input id="stage21SaleReceipt"></div><div><label>Description</label><input id="stage21SaleDesc"></div><div class="stage21-span stage21-note">This creates one ledger entry and one payment allocation. It does not duplicate money.</div><div class="stage21-span form-actions"><button class="primary" type="submit">Save Payment</button><button class="ghost" id="stage21SaleCancel" type="button">Cancel</button></div></form><p id="stage21SaleMsg" class="message"></p><h3>Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage21SaleRows"><tr><td colspan="7">No sale selected.</td></tr></tbody></table></div></div>`;
+    document.body.appendChild(m); $("#stage21SaleClose").onclick=closeSale; $("#stage21SaleCancel").onclick=closeSale; $("#stage21SaleAmount").oninput=e=>moneyInput(e.target); $("#stage21SaleForm").onsubmit=saveSalePayment;
   }
-  function closeSalePaymentModal(){ $("#stage20SalePaymentModal")?.classList.add("hidden"); }
-  async function getSaleDeal(id){ if(typeof loadSaleDealsExpanded === "function") await loadSaleDealsExpanded().catch(()=>{}); return (state.saleDealsView||[]).find(d=>d.id===id); }
-  async function openSalePaymentModal(id, fromDetail=false){
-    if(!ready()) return alert("App is still loading.");
-    await ensureBase(); ensureSalePaymentModal();
-    activeSaleDealId=id||activeSaleDealId;
-    activeSaleDeal=await getSaleDeal(activeSaleDealId);
-    if(!activeSaleDeal) return alert("Sale deal not found. Refresh and try again.");
-    if(fromDetail) $("#saleDealDetailOverlay")?.classList.add("hidden");
-    const modal=$("#stage20SalePaymentModal");
-    modal.classList.remove("hidden");
-    $("#stage20SaleTitle").textContent=`${activeSaleDeal.deal_no||"Sale Deal"} · ${projectName(activeSaleDeal.project_id)}`;
-    $("#stage20SaleDate").value=today();
-    $("#stage20SaleAmount").value="";
-    $("#stage20SaleReceipt").value="";
-    $("#stage20SaleDesc").value=`Payment for ${activeSaleDeal.deal_no||"sale deal"}`;
-    $("#stage20SaleRegister").innerHTML=registerOptions();
-    $("#stage20SaleClient").innerHTML=(activeSaleDeal._clients||[]).map(c=>`<option value="${esc(c.client_id)}">${esc(c.client?.name_en||clientName(c.client_id))}</option>`).join("");
-    $("#stage20SalePlot").innerHTML=(activeSaleDeal._plots||[]).map(p=>`<option value="${esc(p.plot_id)}">${esc(p.plot?plotLabel(p.plot.id):plotLabel(p.plot_id))}</option>`).join("");
-    $("#stage20SaleMsg").textContent="";
-    await loadSalePaymentRows();
+  function closeSale(){ $("#stage21SaleModal")?.classList.add("hidden"); }
+  async function getDeal(id){ if(typeof loadSaleDealsExpanded === "function") await loadSaleDealsExpanded().catch(()=>{}); return (state.saleDealsView||[]).find(d=>d.id===id); }
+  async function openSale(id, fromDetail=false){
+    if(!ready()) return alert("App is still loading."); await ensure(); ensureSaleModal(); activeDealId=id||activeDealId; activeDeal=await getDeal(activeDealId); if(!activeDeal) return alert("Sale deal not found."); if(fromDetail) $("#saleDealDetailOverlay")?.classList.add("hidden");
+    $("#stage21SaleModal").classList.remove("hidden"); $("#stage21SaleTitle").textContent=`${activeDeal.deal_no||"Sale Deal"} · ${projectName(activeDeal.project_id)}`; $("#stage21SaleDate").value=today(); $("#stage21SaleAmount").value=""; $("#stage21SaleReceipt").value=""; $("#stage21SaleDesc").value=`Payment for ${activeDeal.deal_no||"sale deal"}`; $("#stage21SaleRegister").innerHTML=registerOptions(); $("#stage21SaleClient").innerHTML=(activeDeal._clients||[]).map(c=>`<option value="${esc(c.client_id)}">${esc(c.client?.name_en||clientName(c.client_id))}</option>`).join(""); $("#stage21SalePlot").innerHTML=(activeDeal._plots||[]).map(p=>`<option value="${esc(p.plot_id)}">${esc(p.plot?plotLabel(p.plot.id):plotLabel(p.plot_id))}</option>`).join(""); $("#stage21SaleMsg").textContent=""; await loadSaleRows();
   }
-  async function loadSalePaymentRows(){
-    activeSaleDeal=await getSaleDeal(activeSaleDealId);
-    if(!activeSaleDeal) return;
-    $("#stage20SaleSummary").innerHTML=`<div class="stage20-card"><small>Sale Value</small><strong>${fmt(activeSaleDeal._totalSale)}</strong></div><div class="stage20-card"><small>Received</small><strong>${fmt(activeSaleDeal._received)}</strong></div><div class="stage20-card"><small>Remaining</small><strong>${fmt(activeSaleDeal._remaining)}</strong></div>`;
-    const rows=activeSaleDeal._payments||[];
-    const body=$("#stage20SaleRows");
-    if(!rows.length){ body.innerHTML=`<tr><td colspan="7">No payments found.</td></tr>`; return; }
-    body.innerHTML=rows.map(p=>`<tr class="${p.ledger?.status==="voided"?"voided-row":""}"><td>${esc(p.ledger?.entry_date||"-")}</td><td>${esc(clientName(p.client_id))}</td><td>${fmt(p.allocated_amount)}</td><td>${esc(p.ledger?.payment_method||"-")}</td><td>${esc(p.ledger?.receipt_no||"-")}</td><td><span class="status-badge ${esc(p.ledger?.status||"active")}">${esc(p.ledger?.status||"active")}</span></td><td>${p.ledger?.status==="active"?`<button class="danger-btn" data-stage20-sale-void="${esc(p.ledger_entry_id)}">Void</button>`:"-"}</td></tr>`).join("");
-    $$('[data-stage20-sale-void]').forEach(b=>b.onclick=()=>voidSalePayment(b.dataset.stage20SaleVoid));
-  }
-  async function saveSalePayment(e){
-    e.preventDefault();
-    const amount=money($("#stage20SaleAmount").value);
-    const clientId=$("#stage20SaleClient").value;
-    const plotId=$("#stage20SalePlot").value;
-    if(!amount) return $("#stage20SaleMsg").textContent="Amount must be greater than zero.";
-    if(!clientId||!plotId) return $("#stage20SaleMsg").textContent="Client and plot are required.";
-    activeSaleDeal=await getSaleDeal(activeSaleDealId);
-    if(!activeSaleDeal) return $("#stage20SaleMsg").textContent="Sale deal not found.";
-    const category=plotPaymentCategory();
-    const payload={entry_date:$("#stage20SaleDate").value||today(),direction:"money_in",amount,payment_method:$("#stage20SaleMethod").value||"cash",category_id:category?.id||null,register_id:$("#stage20SaleRegister").value||null,description:$("#stage20SaleDesc").value.trim()||`Payment for ${activeSaleDeal.deal_no||"sale deal"}`,project_id:activeSaleDeal.project_id||null,plot_id:plotId,client_id:clientId,sale_deal_id:activeSaleDeal.id,reference_type:"sale_deal_payment",reference_id:activeSaleDeal.id,receipt_no:$("#stage20SaleReceipt").value.trim()||null,status:"active",created_by:state.profile?.id||null};
-    $("#stage20SaleMsg").textContent="Saving payment...";
-    const {data:ledger,error:ledgerError}=await supabaseClient.from("ledger_entries").insert(payload).select().single();
-    if(ledgerError) return $("#stage20SaleMsg").textContent=ledgerError.message;
-    const {error:allocationError}=await supabaseClient.from("payment_allocations").insert({ledger_entry_id:ledger.id,sale_deal_id:activeSaleDeal.id,plot_id:plotId,client_id:clientId,allocated_amount:amount,allocation_type:"manual",notes:"Created from Sale Deals page",created_by:state.profile?.id||null});
-    if(allocationError){ await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:"Allocation failed"}).eq("id",ledger.id); return $("#stage20SaleMsg").textContent=allocationError.message; }
-    const projected=Number(activeSaleDeal._received||0)+amount;
-    if(projected>=Number(activeSaleDeal._totalSale||0)&&Number(activeSaleDeal._totalSale||0)>0){
-      await supabaseClient.from("sale_deals").update({deal_status:"completed"}).eq("id",activeSaleDeal.id);
-      await supabaseClient.from("sale_deal_plots").update({plot_deal_status:"sold"}).eq("sale_deal_id",activeSaleDeal.id);
-      await supabaseClient.from("plots").update({availability_status:"sold"}).eq("id",plotId);
-    }
-    $("#stage20SaleMsg").textContent="Payment saved into ledger and allocated to sale deal.";
-    $("#stage20SaleAmount").value="";
-    if(typeof loadSaleDealsPage==="function") await loadSaleDealsPage().catch(()=>{});
-    await loadSalePaymentRows();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-  async function voidSalePayment(ledgerId){
-    const reason=prompt("Reason for voiding this sale payment?");
-    if(reason===null) return;
-    const {error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from Sale Deals page"}).eq("id",ledgerId);
-    if(error) return alert(error.message);
-    if(typeof loadSaleDealsPage==="function") await loadSaleDealsPage().catch(()=>{});
-    await loadSalePaymentRows();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-  function attachSalePaymentButtons(){
-    if(!ready()) return;
-    const body=$("#saleDealsTableBody");
-    if(body&&!body.dataset.stage20SaleTrack){
-      body.dataset.stage20SaleTrack="true";
-      body.addEventListener("click",e=>{ const v=e.target.closest("[data-view-sale-deal]"); if(v) activeSaleDealId=v.dataset.viewSaleDeal; },true);
-    }
-    $$("#saleDealsTableBody [data-view-sale-deal]").forEach(view=>{
-      const id=view.dataset.viewSaleDeal;
-      const box=view.closest(".row-actions");
-      if(!box) return;
-      if(!box.querySelector(`[data-stage20-sale-pay="${id}"]`)){
-        const btn=document.createElement("button");
-        btn.type="button"; btn.className="small-btn"; btn.textContent="Add Payment"; btn.dataset.stage20SalePay=id;
-        btn.onclick=()=>openSalePaymentModal(id,false);
-        box.insertBefore(btn,view);
-      }
-    });
-    const header=$("#saleDealDetailOverlay .page-actions.small-page-actions");
-    if(header&&!$("#stage20DetailAddPayment")){
-      const btn=document.createElement("button");
-      btn.id="stage20DetailAddPayment"; btn.type="button"; btn.className="primary"; btn.textContent="+ Add Payment";
-      btn.onclick=()=>activeSaleDealId?openSalePaymentModal(activeSaleDealId,true):alert("Open a sale deal from the table first.");
-      header.appendChild(btn);
-    }
-  }
+  async function loadSaleRows(){ activeDeal=await getDeal(activeDealId); if(!activeDeal) return; $("#stage21SaleSummary").innerHTML=`<div class="stage21-card"><small>Sale Value</small><strong>${fmt(activeDeal._totalSale)}</strong></div><div class="stage21-card"><small>Received</small><strong>${fmt(activeDeal._received)}</strong></div><div class="stage21-card"><small>Remaining</small><strong>${fmt(activeDeal._remaining)}</strong></div>`; const rows=activeDeal._payments||[], body=$("#stage21SaleRows"); if(!rows.length){body.innerHTML=`<tr><td colspan="7">No payments found.</td></tr>`; return;} body.innerHTML=rows.map(p=>`<tr class="${p.ledger?.status==="voided"?"voided-row":""}"><td>${esc(p.ledger?.entry_date||"-")}</td><td>${esc(clientName(p.client_id))}</td><td>${fmt(p.allocated_amount)}</td><td>${esc(p.ledger?.payment_method||"-")}</td><td>${esc(p.ledger?.receipt_no||"-")}</td><td><span class="status-badge ${esc(p.ledger?.status||"active")}">${esc(p.ledger?.status||"active")}</span></td><td>${p.ledger?.status==="active"?`<button class="danger-btn" data-stage21-sale-void="${esc(p.ledger_entry_id)}">Void</button>`:"-"}</td></tr>`).join(""); $$('[data-stage21-sale-void]').forEach(b=>b.onclick=()=>voidLedger(b.dataset.stage21SaleVoid, loadSaleRows)); }
+  async function saveSalePayment(e){ e.preventDefault(); const amount=num($("#stage21SaleAmount").value), clientId=$("#stage21SaleClient").value, plotId=$("#stage21SalePlot").value; if(!amount) return $("#stage21SaleMsg").textContent="Amount must be greater than zero."; if(!clientId||!plotId) return $("#stage21SaleMsg").textContent="Client and plot are required."; activeDeal=await getDeal(activeDealId); const category=categoryBy(["plot_payment","plot payment"]); const payload={entry_date:$("#stage21SaleDate").value||today(),direction:"money_in",amount,payment_method:$("#stage21SaleMethod").value||"cash",category_id:category?.id||null,register_id:$("#stage21SaleRegister").value||null,description:$("#stage21SaleDesc").value.trim()||`Payment for ${activeDeal.deal_no||"sale deal"}`,project_id:activeDeal.project_id||null,plot_id:plotId,client_id:clientId,sale_deal_id:activeDeal.id,reference_type:"sale_deal_payment",reference_id:activeDeal.id,receipt_no:$("#stage21SaleReceipt").value.trim()||null,status:"active",created_by:state.profile?.id||null}; $("#stage21SaleMsg").textContent="Saving payment..."; const {data:ledger,error:le}=await supabaseClient.from("ledger_entries").insert(payload).select().single(); if(le) return $("#stage21SaleMsg").textContent=le.message; const {error:ae}=await supabaseClient.from("payment_allocations").insert({ledger_entry_id:ledger.id,sale_deal_id:activeDeal.id,plot_id:plotId,client_id:clientId,allocated_amount:amount,allocation_type:"manual",notes:"Created from Sale Deals page",created_by:state.profile?.id||null}); if(ae){await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:"Allocation failed"}).eq("id",ledger.id); return $("#stage21SaleMsg").textContent=ae.message;} $("#stage21SaleMsg").textContent="Payment saved."; $("#stage21SaleAmount").value=""; if(typeof loadSaleDealsPage==="function") await loadSaleDealsPage().catch(()=>{}); await loadSaleRows(); if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{}); }
 
-  // ---------------- Case View / Case Money preservation ----------------
-  function ensureCaseViewModal(){
-    addCss();
-    if($("#stage20CaseView")) return;
-    const modal=document.createElement("div");
-    modal.id="stage20CaseView"; modal.className="stage20-modal hidden";
-    modal.innerHTML=`<div class="stage20-box"><div class="stage20-head"><div><h2 id="stage20CaseTitle">Case Details</h2><p class="muted" id="stage20CaseSub">View full case record.</p></div><div class="stage20-actions"><button class="primary" id="stage20CaseMoneyBtn" type="button">Money</button><button class="ghost" id="stage20CaseClose" type="button">Close</button></div></div><div id="stage20CaseDetails" class="stage20-grid"></div></div>`;
-    document.body.appendChild(modal);
-    $("#stage20CaseClose").onclick=()=>modal.classList.add("hidden");
-    $("#stage20CaseMoneyBtn").onclick=()=>activeCase&&openCaseMoney(activeCase.id);
-  }
-  function ensureCaseMoneyModal(){
-    addCss();
-    if($("#stage20CaseMoney")) return;
-    const modal=document.createElement("div");
-    modal.id="stage20CaseMoney"; modal.className="stage20-modal hidden";
-    modal.innerHTML=`<div class="stage20-box"><div class="stage20-head"><div><h2>Case Money Entry</h2><p class="muted" id="stage20CaseMoneyTitle">Save case income or expense.</p></div><button class="ghost" id="stage20CaseMoneyClose" type="button">Close</button></div><form id="stage20CaseMoneyForm" class="stage20-grid"><div><label>Date *</label><input id="stage20CaseMoneyDate" type="date" required></div><div><label>Direction *</label><select id="stage20CaseMoneyDirection"><option value="money_out">Money Out / Expense</option><option value="money_in">Money In / Received</option></select></div><div><label>Amount *</label><input id="stage20CaseMoneyAmount" inputmode="numeric" required></div><div><label>Payment Method</label><select id="stage20CaseMoneyMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Receipt No</label><input id="stage20CaseMoneyReceipt"></div><div><label>Voucher No</label><input id="stage20CaseMoneyVoucher"></div><div class="stage20-span"><label>Description *</label><textarea id="stage20CaseMoneyDesc" rows="3" required></textarea></div><div class="stage20-span form-actions"><button class="primary" type="submit">Save Case Money</button><button class="ghost" id="stage20CaseMoneyCancel" type="button">Cancel</button></div></form><p id="stage20CaseMoneyMsg" class="message"></p></div>`;
-    document.body.appendChild(modal);
-    $("#stage20CaseMoneyClose").onclick=()=>modal.classList.add("hidden");
-    $("#stage20CaseMoneyCancel").onclick=()=>modal.classList.add("hidden");
-    $("#stage20CaseMoneyAmount").oninput=e=>formatInput(e.target);
-    $("#stage20CaseMoneyForm").onsubmit=saveCaseMoney;
-  }
-  async function openCaseView(id){
-    if(!ready()) return alert("App is still loading.");
-    await ensureBase();
-    activeCase=(state.cases||[]).find(c=>c.id===id);
-    if(!activeCase) return alert("Case not found. Refresh Cases and try again.");
-    ensureCaseViewModal();
-    $("#stage20CaseView").classList.remove("hidden");
-    $("#stage20CaseTitle").textContent=activeCase.case_title||"Case Details";
-    $("#stage20CaseSub").textContent=`${activeCase.case_type||"Case"} · ${activeCase.case_status||""}`;
-    $("#stage20CaseDetails").innerHTML=`<div class="stage20-detail"><small>Case Title</small><strong>${esc(activeCase.case_title||"-")}</strong></div><div class="stage20-detail"><small>Status</small>${esc(activeCase.case_status||"-")}</div><div class="stage20-detail"><small>Type</small>${esc(activeCase.case_type||"-")}</div><div class="stage20-detail"><small>Case No</small>${esc(activeCase.case_number||"-")}</div><div class="stage20-detail"><small>Court / Office</small>${esc(activeCase.court_or_office_name||"-")}</div><div class="stage20-detail"><small>Lawyer</small>${esc(activeCase.lawyer_name||"-")}<br>${esc(activeCase.lawyer_phone||"")}</div><div class="stage20-detail"><small>Project / Plot</small>${esc(activeCase.linked_project_id?projectName(activeCase.linked_project_id):"-")} | ${esc(activeCase.linked_plot_id?plotLabel(activeCase.linked_plot_id):"-")}</div><div class="stage20-detail"><small>Client / Seller</small>${esc(activeCase.linked_client_id?clientName(activeCase.linked_client_id):"-")} | ${esc(activeCase.linked_seller_id?sellerName(activeCase.linked_seller_id):"-")}</div><div class="stage20-detail stage20-span"><small>Notes</small>${esc(activeCase.notes||"-")}</div>`;
-  }
-  async function openCaseMoney(id){
-    if(!ready()) return alert("App is still loading.");
-    await ensureBase();
-    activeCase=(state.cases||[]).find(c=>c.id===id)||activeCase;
-    if(!activeCase) return alert("Case not found.");
-    ensureCaseMoneyModal();
-    $("#stage20CaseMoney").classList.remove("hidden");
-    $("#stage20CaseMoneyTitle").textContent=`${activeCase.case_title||"Case"} · ${activeCase.case_number||"No case number"}`;
-    $("#stage20CaseMoneyDate").value=today();
-    $("#stage20CaseMoneyDirection").value="money_out";
-    $("#stage20CaseMoneyAmount").value="";
-    $("#stage20CaseMoneyReceipt").value="";
-    $("#stage20CaseMoneyVoucher").value="";
-    $("#stage20CaseMoneyDesc").value=`Case expense - ${activeCase.case_title||"case"}`;
-    $("#stage20CaseMoneyMsg").textContent="";
-  }
-  async function saveCaseMoney(e){
-    e.preventDefault();
-    const amount=money($("#stage20CaseMoneyAmount").value);
-    const desc=$("#stage20CaseMoneyDesc").value.trim();
-    if(!amount) return $("#stage20CaseMoneyMsg").textContent="Amount must be greater than zero.";
-    if(!desc) return $("#stage20CaseMoneyMsg").textContent="Description is required.";
-    const payload={entry_date:$("#stage20CaseMoneyDate").value||today(),direction:$("#stage20CaseMoneyDirection").value,amount,payment_method:$("#stage20CaseMoneyMethod").value||"cash",description:desc,project_id:activeCase.linked_project_id||null,plot_id:activeCase.linked_plot_id||null,client_id:activeCase.linked_client_id||null,seller_id:activeCase.linked_seller_id||null,case_id:activeCase.id,receipt_no:$("#stage20CaseMoneyReceipt").value.trim()||null,voucher_no:$("#stage20CaseMoneyVoucher").value.trim()||null,reference_type:"case_money",reference_id:activeCase.id,status:"active",created_by:state.profile?.id||null};
-    $("#stage20CaseMoneyMsg").textContent="Saving...";
-    const {error}=await supabaseClient.from("ledger_entries").insert(payload);
-    if(error) return $("#stage20CaseMoneyMsg").textContent=error.message;
-    $("#stage20CaseMoneyMsg").textContent="Saved into Daily Accounts.";
-    $("#stage20CaseMoneyAmount").value="";
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-  function attachCaseButtons(){
-    if(!ready()) return;
-    $$("#casesTableBody [data-edit-case]").forEach(edit=>{
-      const id=edit.dataset.editCase;
-      const box=edit.closest(".row-actions");
-      if(!box) return;
-      if(!box.querySelector(`[data-stage20-case-view="${id}"]`)){
-        const v=document.createElement("button"); v.type="button"; v.className="small-btn"; v.textContent="View"; v.dataset.stage20CaseView=id; v.onclick=()=>openCaseView(id); box.insertBefore(v,box.firstChild);
-      }
-      if(!box.querySelector(`[data-stage20-case-money="${id}"]`)){
-        const m=document.createElement("button"); m.type="button"; m.className="small-btn"; m.textContent="Money"; m.dataset.stage20CaseMoney=id; m.onclick=()=>openCaseMoney(id); const editBtn=box.querySelector("[data-edit-case]"); box.insertBefore(m,editBtn||null);
-      }
-    });
-  }
+  // Agent Commission preserved from Stage 20
+  function ensureAgentModal(){ addCss(); if($("#stage21AgentModal")) return; const m=document.createElement("div"); m.id="stage21AgentModal"; m.className="stage21-modal hidden"; m.innerHTML=`<div class="stage21-box"><div class="stage21-head"><div><h2 id="stage21AgentTitle">Agent Commission</h2><p class="muted" id="stage21AgentSub">Record commission payments into Daily Accounts.</p></div><button class="ghost" id="stage21AgentClose" type="button">Close</button></div><div class="stage21-cards" id="stage21AgentSummary"></div><form id="stage21AgentForm" class="stage21-grid"><div><label>Date *</label><input id="stage21AgentDate" type="date" required></div><div><label>Amount *</label><input id="stage21AgentAmount" inputmode="numeric" required></div><div><label>Sale Deal</label><select id="stage21AgentDeal"><option value="">No linked sale deal</option></select></div><div><label>Payment Method</label><select id="stage21AgentMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option></select></div><div><label>Register</label><select id="stage21AgentRegister"></select></div><div><label>Voucher No</label><input id="stage21AgentVoucher"></div><div class="stage21-span"><label>Description</label><input id="stage21AgentDesc"></div><div class="stage21-span stage21-note">This saves once into the central ledger as Money Out and links to this agent.</div><div class="stage21-span form-actions"><button class="primary" type="submit">Save Commission Payment</button><button class="ghost" id="stage21AgentCancel" type="button">Cancel</button></div></form><p id="stage21AgentMsg" class="message"></p><h3>Linked Sale Deals</h3><div class="table-wrap"><table><thead><tr><th>Deal</th><th>Project</th><th>Role</th><th>Plot(s)</th></tr></thead><tbody id="stage21AgentDealRows"></tbody></table></div><h3>Commission Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Method</th><th>Voucher</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage21AgentRows"></tbody></table></div></div>`; document.body.appendChild(m); $("#stage21AgentClose").onclick=()=>m.classList.add("hidden"); $("#stage21AgentCancel").onclick=()=>m.classList.add("hidden"); $("#stage21AgentAmount").oninput=e=>moneyInput(e.target); $("#stage21AgentForm").onsubmit=saveAgentCommission; }
+  async function openAgent(agentId){ if(!ready()) return alert("App is still loading."); await ensure(); ensureAgentModal(); activeAgent=(state.agents||[]).find(a=>a.id===agentId); if(!activeAgent) return alert("Agent not found."); $("#stage21AgentModal").classList.remove("hidden"); $("#stage21AgentTitle").textContent=`Commission / Payments — ${activeAgent.name_en||"Agent"}`; $("#stage21AgentDate").value=today(); $("#stage21AgentAmount").value=""; $("#stage21AgentVoucher").value=""; $("#stage21AgentDesc").value=`Commission payment to ${activeAgent.name_en||"agent"}`; $("#stage21AgentRegister").innerHTML=registerOptions(); $("#stage21AgentMsg").textContent=""; await loadAgentData(); }
+  async function loadAgentData(){ const [{data:links},{data:deals},{data:plots},{data:ledger}]=await Promise.all([supabaseClient.from("sale_deal_agents").select("*").eq("agent_id",activeAgent.id),supabaseClient.from("sale_deals").select("*"),supabaseClient.from("sale_deal_plots").select("*"),supabaseClient.from("ledger_entries").select("*").eq("agent_id",activeAgent.id).order("entry_date",{ascending:false})]); activeAgentDeals=(links||[]).map(l=>{const d=(deals||[]).find(x=>x.id===l.sale_deal_id)||{}; return {...l,deal:d,_plots:(plots||[]).filter(p=>p.sale_deal_id===l.sale_deal_id)}}); $("#stage21AgentDeal").innerHTML=`<option value="">No linked sale deal</option>`+activeAgentDeals.map(x=>`<option value="${esc(x.sale_deal_id)}">${esc(x.deal?.deal_no||"Sale Deal")} · ${esc(projectName(x.deal?.project_id))}</option>`).join(""); $("#stage21AgentDealRows").innerHTML=activeAgentDeals.length?activeAgentDeals.map(x=>`<tr><td>${esc(x.deal?.deal_no||"-")}</td><td>${esc(projectName(x.deal?.project_id))}</td><td>${esc(x.role_in_deal||x.role||"-")}</td><td>${esc((x._plots||[]).map(p=>plotLabel(p.plot_id)).join(", ")||"-")}</td></tr>`).join(""):`<tr><td colspan="4">No linked sale deals found.</td></tr>`; const rows=ledger||[]; const paid=rows.filter(e=>e.status==="active"&&e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0); $("#stage21AgentSummary").innerHTML=`<div class="stage21-card"><small>Commission Paid</small><strong>${fmt(paid)}</strong></div><div class="stage21-card"><small>Linked Sale Deals</small><strong>${activeAgentDeals.length}</strong></div><div class="stage21-card"><small>Agent</small><strong>${esc(activeAgent.name_en||"-")}</strong></div>`; $("#stage21AgentRows").innerHTML=rows.length?rows.map(e=>`<tr class="${e.status==="voided"?"voided-row":""}"><td>${esc(e.entry_date||"-")}</td><td>${esc(e.description||"-")}</td><td>${fmt(e.amount)}</td><td>${esc(e.payment_method||"-")}</td><td>${esc(e.voucher_no||"-")}</td><td><span class="status-badge ${esc(e.status||"active")}">${esc(e.status||"active")}</span></td><td>${e.status==="active"?`<button class="danger-btn" data-stage21-agent-void="${esc(e.id)}">Void</button>`:"-"}</td></tr>`).join(""):`<tr><td colspan="7">No payments found.</td></tr>`; $$('[data-stage21-agent-void]').forEach(b=>b.onclick=()=>voidLedger(b.dataset.stage21AgentVoid, loadAgentData)); updateAgentBadges(); }
+  async function saveAgentCommission(e){ e.preventDefault(); const amount=num($("#stage21AgentAmount").value); if(!amount) return $("#stage21AgentMsg").textContent="Amount must be greater than zero."; const dealId=$("#stage21AgentDeal").value||null; const linked=dealId?activeAgentDeals.find(x=>x.sale_deal_id===dealId):null; const firstPlot=linked?._plots?.[0]; const cat=categoryBy(["commission"]); const payload={entry_date:$("#stage21AgentDate").value||today(),direction:"money_out",amount,payment_method:$("#stage21AgentMethod").value||"cash",category_id:cat?.id||null,register_id:$("#stage21AgentRegister").value||null,description:$("#stage21AgentDesc").value.trim()||`Commission payment to ${activeAgent.name_en||"agent"}`,project_id:linked?.deal?.project_id||null,plot_id:firstPlot?.plot_id||null,agent_id:activeAgent.id,sale_deal_id:dealId,reference_type:"agent_commission",reference_id:activeAgent.id,voucher_no:$("#stage21AgentVoucher").value.trim()||null,status:"active",created_by:state.profile?.id||null}; $("#stage21AgentMsg").textContent="Saving..."; const {error}=await supabaseClient.from("ledger_entries").insert(payload); if(error) return $("#stage21AgentMsg").textContent=error.message; $("#stage21AgentMsg").textContent="Saved into Daily Accounts."; $("#stage21AgentAmount").value=""; await loadAgentData(); if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{}); }
 
-  // ---------------- Agent Commission ----------------
-  function ensureAgentModal(){
-    addCss();
-    if($("#stage20AgentModal")) return;
-    const modal=document.createElement("div");
-    modal.id="stage20AgentModal";
-    modal.className="stage20-modal hidden";
-    modal.innerHTML=`<div class="stage20-box"><div class="stage20-head"><div><h2 id="stage20AgentTitle">Agent Commission</h2><p class="muted" id="stage20AgentSub">Record commission payments into Daily Accounts.</p></div><button class="ghost" id="stage20AgentClose" type="button">Close</button></div><div class="stage20-cards" id="stage20AgentSummary"></div><form id="stage20AgentForm" class="stage20-grid"><div><label>Date *</label><input id="stage20AgentDate" type="date" required></div><div><label>Amount *</label><input id="stage20AgentAmount" inputmode="numeric" required></div><div><label>Sale Deal</label><select id="stage20AgentDeal"><option value="">No linked sale deal</option></select></div><div><label>Payment Method</label><select id="stage20AgentMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Payment Register</label><select id="stage20AgentRegister"></select></div><div><label>Voucher No</label><input id="stage20AgentVoucher"></div><div class="stage20-span"><label>Description</label><input id="stage20AgentDesc"></div><div class="stage20-span stage20-note">This saves once into the central ledger as Money Out and links to this agent. It does not duplicate money.</div><div class="stage20-span form-actions"><button class="primary" type="submit">Save Commission Payment</button><button class="ghost" id="stage20AgentCancel" type="button">Cancel</button></div></form><p id="stage20AgentMsg" class="message"></p><h3>Linked Sale Deals</h3><div class="table-wrap"><table><thead><tr><th>Deal</th><th>Project</th><th>Role</th><th>Plot(s)</th></tr></thead><tbody id="stage20AgentDealRows"><tr><td colspan="4">No linked sale deals loaded.</td></tr></tbody></table></div><h3>Commission Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Method</th><th>Voucher</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage20AgentRows"><tr><td colspan="7">No payments loaded.</td></tr></tbody></table></div></div>`;
-    document.body.appendChild(modal);
-    $("#stage20AgentClose").onclick=closeAgentModal;
-    $("#stage20AgentCancel").onclick=closeAgentModal;
-    $("#stage20AgentAmount").oninput=e=>formatInput(e.target);
-    $("#stage20AgentForm").onsubmit=saveAgentCommission;
-    modal.onclick=e=>{ if(e.target.id==="stage20AgentModal") closeAgentModal(); };
+  // Stage 21 Seller Payments
+  function ensureSellerModal(){
+    addCss(); if($("#stage21SellerModal")) return;
+    const m=document.createElement("div"); m.id="stage21SellerModal"; m.className="stage21-modal hidden";
+    m.innerHTML=`<div class="stage21-box"><div class="stage21-head"><div><h2 id="stage21SellerTitle">Seller Payments</h2><p class="muted" id="stage21SellerSub">Record land/seller payments into Daily Accounts.</p></div><button class="ghost" id="stage21SellerClose" type="button">Close</button></div><div class="stage21-cards" id="stage21SellerSummary"></div><form id="stage21SellerForm" class="stage21-grid"><div><label>Date *</label><input id="stage21SellerDate" type="date" required></div><div><label>Amount *</label><input id="stage21SellerAmount" inputmode="numeric" required></div><div><label>Linked Plot / Land</label><select id="stage21SellerPlot"></select></div><div><label>Payment Method</label><select id="stage21SellerMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Payment Register</label><select id="stage21SellerRegister"></select></div><div><label>Voucher No</label><input id="stage21SellerVoucher"></div><div class="stage21-span"><label>Description</label><input id="stage21SellerDesc"></div><div class="stage21-span stage21-note">This saves once into the central ledger as Money Out and links to this seller. It does not duplicate money.</div><div class="stage21-span form-actions"><button class="primary" type="submit">Save Seller Payment</button><button class="ghost" id="stage21SellerCancel" type="button">Cancel</button></div></form><p id="stage21SellerMsg" class="message"></p><h3>Seller Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Plot</th><th>Amount</th><th>Method</th><th>Voucher</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage21SellerRows"><tr><td colspan="8">No payments loaded.</td></tr></tbody></table></div></div>`;
+    document.body.appendChild(m); $("#stage21SellerClose").onclick=()=>m.classList.add("hidden"); $("#stage21SellerCancel").onclick=()=>m.classList.add("hidden"); $("#stage21SellerAmount").oninput=e=>moneyInput(e.target); $("#stage21SellerForm").onsubmit=saveSellerPayment;
   }
-  function closeAgentModal(){ $("#stage20AgentModal")?.classList.add("hidden"); }
-  async function openAgentCommission(agentId){
-    if(!ready()) return alert("App is still loading.");
-    await ensureBase(); ensureAgentModal();
-    activeAgent=(state.agents||[]).find(a=>a.id===agentId);
-    if(!activeAgent) return alert("Agent not found. Refresh Agents and try again.");
-    $("#stage20AgentModal").classList.remove("hidden");
-    $("#stage20AgentTitle").textContent=`Commission / Payments — ${activeAgent.name_en||"Agent"}`;
-    $("#stage20AgentSub").textContent=[activeAgent.phone, activeAgent.cnic].filter(Boolean).join(" | ") || "Agent ledger and linked sale deals.";
-    $("#stage20AgentDate").value=today();
-    $("#stage20AgentAmount").value="";
-    $("#stage20AgentVoucher").value="";
-    $("#stage20AgentDesc").value=`Commission payment to ${activeAgent.name_en||"agent"}`;
-    $("#stage20AgentRegister").innerHTML=registerOptions();
-    $("#stage20AgentMsg").textContent="";
-    await loadAgentCommissionData();
+  async function openSeller(sellerId){
+    if(!ready()) return alert("App is still loading."); await ensure(); ensureSellerModal();
+    activeSeller=(state.sellers||[]).find(s=>s.id===sellerId); if(!activeSeller) return alert("Seller not found. Refresh Sellers and try again.");
+    $("#stage21SellerModal").classList.remove("hidden"); $("#stage21SellerTitle").textContent=`Payments — ${activeSeller.name_en||"Seller"}`; $("#stage21SellerSub").textContent=[activeSeller.phone,activeSeller.cnic].filter(Boolean).join(" | ") || "Seller ledger and land payments."; $("#stage21SellerDate").value=today(); $("#stage21SellerAmount").value=""; $("#stage21SellerVoucher").value=""; $("#stage21SellerDesc").value=`Payment to seller ${activeSeller.name_en||""}`.trim(); $("#stage21SellerRegister").innerHTML=registerOptions(); $("#stage21SellerPlot").innerHTML=plotOptions("No linked plot / land"); $("#stage21SellerMsg").textContent=""; await loadSellerData();
   }
-  async function loadAgentCommissionData(){
-    if(!activeAgent) return;
-    const [{data:links,error:linkError},{data:deals},{data:plots},{data:ledger,error:ledgerError}] = await Promise.all([
-      supabaseClient.from("sale_deal_agents").select("*").eq("agent_id",activeAgent.id),
-      supabaseClient.from("sale_deals").select("*"),
-      supabaseClient.from("sale_deal_plots").select("*"),
-      supabaseClient.from("ledger_entries").select("*").eq("agent_id",activeAgent.id).order("entry_date",{ascending:false})
-    ]);
-    if(linkError) $("#stage20AgentDealRows").innerHTML=`<tr><td colspan="4">${esc(linkError.message)}</td></tr>`;
-    if(ledgerError) $("#stage20AgentRows").innerHTML=`<tr><td colspan="7">${esc(ledgerError.message)}</td></tr>`;
-    activeAgentDeals=(links||[]).map(l=>{
-      const d=(deals||[]).find(x=>x.id===l.sale_deal_id)||{};
-      const dealPlots=(plots||[]).filter(p=>p.sale_deal_id===l.sale_deal_id);
-      return {...l,deal:d,_plots:dealPlots};
-    });
-    $("#stage20AgentDeal").innerHTML=`<option value="">No linked sale deal</option>`+activeAgentDeals.map(x=>`<option value="${esc(x.sale_deal_id)}">${esc(x.deal?.deal_no||"Sale Deal")} · ${esc(projectName(x.deal?.project_id))}</option>`).join("");
-    $("#stage20AgentDealRows").innerHTML=activeAgentDeals.length?activeAgentDeals.map(x=>`<tr><td>${esc(x.deal?.deal_no||"-")}<br><small>${esc(x.deal?.deal_date||"")}</small></td><td>${esc(projectName(x.deal?.project_id))}</td><td>${esc(x.role_in_deal||x.role||"-")}</td><td>${esc((x._plots||[]).map(p=>plotLabel(p.plot_id)).join(", ")||"-")}</td></tr>`).join(""):`<tr><td colspan="4">No linked sale deals found for this agent.</td></tr>`;
-    const rows=(ledger||[]).filter(e=>e.status==="active"||e.status==="voided");
-    const paid=rows.filter(e=>e.status==="active"&&e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0);
-    const received=rows.filter(e=>e.status==="active"&&e.direction==="money_in").reduce((s,e)=>s+Number(e.amount||0),0);
-    $("#stage20AgentSummary").innerHTML=`<div class="stage20-card"><small>Commission Paid</small><strong>${fmt(paid)}</strong></div><div class="stage20-card"><small>Money In Linked</small><strong>${fmt(received)}</strong></div><div class="stage20-card"><small>Linked Sale Deals</small><strong>${activeAgentDeals.length}</strong></div>`;
-    $("#stage20AgentRows").innerHTML=rows.length?rows.map(e=>`<tr class="${e.status==="voided"?"voided-row":""}"><td>${esc(e.entry_date||"-")}</td><td>${esc(e.description||"-")}<br><small>${esc(e.sale_deal_id?(activeAgentDeals.find(x=>x.sale_deal_id===e.sale_deal_id)?.deal?.deal_no||""):"")}</small></td><td>${fmt(e.amount)}</td><td>${esc(e.payment_method||"-")}</td><td>${esc(e.voucher_no||"-")}</td><td><span class="status-badge ${esc(e.status||"active")}">${esc(e.status||"active")}</span></td><td>${e.status==="active"?`<button class="danger-btn" data-stage20-agent-void="${esc(e.id)}">Void</button>`:"-"}</td></tr>`).join(""):`<tr><td colspan="7">No commission payments found.</td></tr>`;
-    $$('[data-stage20-agent-void]').forEach(b=>b.onclick=()=>voidAgentCommission(b.dataset.stage20AgentVoid));
-    updateAgentBadges();
+  async function loadSellerData(){
+    const {data,error}=await supabaseClient.from("ledger_entries").select("*").eq("seller_id",activeSeller.id).order("entry_date",{ascending:false});
+    if(error){ $("#stage21SellerRows").innerHTML=`<tr><td colspan="8">${esc(error.message)}</td></tr>`; return; }
+    const rows=data||[]; const active=rows.filter(e=>e.status==="active"); const paid=active.filter(e=>e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0); const received=active.filter(e=>e.direction==="money_in").reduce((s,e)=>s+Number(e.amount||0),0);
+    const linkedPlots=(state.plots||[]).filter(p=>String(p.transferred_from||"").toLowerCase().includes(String(activeSeller.name_en||"").toLowerCase()) || rows.some(e=>e.plot_id===p.id));
+    $("#stage21SellerSummary").innerHTML=`<div class="stage21-card"><small>Paid to Seller</small><strong>${fmt(paid)}</strong></div><div class="stage21-card"><small>Money In Linked</small><strong>${fmt(received)}</strong></div><div class="stage21-card"><small>Linked Plots Found</small><strong>${linkedPlots.length}</strong></div>`;
+    $("#stage21SellerRows").innerHTML=rows.length?rows.map(e=>`<tr class="${e.status==="voided"?"voided-row":""}"><td>${esc(e.entry_date||"-")}</td><td>${esc(e.description||"-")}</td><td>${esc(e.plot_id?plotLabel(e.plot_id):"-")}</td><td>${fmt(e.amount)}</td><td>${esc(e.payment_method||"-")}</td><td>${esc(e.voucher_no||"-")}</td><td><span class="status-badge ${esc(e.status||"active")}">${esc(e.status||"active")}</span></td><td>${e.status==="active"?`<button class="danger-btn" data-stage21-seller-void="${esc(e.id)}">Void</button>`:"-"}</td></tr>`).join(""):`<tr><td colspan="8">No seller payments found.</td></tr>`;
+    $$('[data-stage21-seller-void]').forEach(b=>b.onclick=()=>voidLedger(b.dataset.stage21SellerVoid, loadSellerData)); updateSellerBadges();
   }
-  async function saveAgentCommission(e){
-    e.preventDefault();
-    if(!activeAgent) return;
-    const amount=money($("#stage20AgentAmount").value);
-    if(!amount) return $("#stage20AgentMsg").textContent="Amount must be greater than zero.";
-    const dealId=$("#stage20AgentDeal").value||null;
-    const linked=dealId?activeAgentDeals.find(x=>x.sale_deal_id===dealId):null;
-    const firstPlot=linked?._plots?.[0];
-    const category=commissionCategory();
-    const payload={entry_date:$("#stage20AgentDate").value||today(),direction:"money_out",amount,payment_method:$("#stage20AgentMethod").value||"cash",category_id:category?.id||null,register_id:$("#stage20AgentRegister").value||null,description:$("#stage20AgentDesc").value.trim()||`Commission payment to ${activeAgent.name_en||"agent"}`,project_id:linked?.deal?.project_id||null,plot_id:firstPlot?.plot_id||null,agent_id:activeAgent.id,sale_deal_id:dealId,reference_type:"agent_commission",reference_id:activeAgent.id,voucher_no:$("#stage20AgentVoucher").value.trim()||null,status:"active",created_by:state.profile?.id||null};
-    $("#stage20AgentMsg").textContent="Saving commission payment...";
-    const {error}=await supabaseClient.from("ledger_entries").insert(payload);
-    if(error) return $("#stage20AgentMsg").textContent=error.message;
-    $("#stage20AgentMsg").textContent="Commission payment saved into Daily Accounts.";
-    $("#stage20AgentAmount").value="";
-    await loadAgentCommissionData();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
+  async function saveSellerPayment(e){
+    e.preventDefault(); const amount=num($("#stage21SellerAmount").value); if(!amount) return $("#stage21SellerMsg").textContent="Amount must be greater than zero."; const plotId=$("#stage21SellerPlot").value||null; const plot=(state.plots||[]).find(p=>p.id===plotId); const cat=categoryBy(["land","seller","purchase"]); const payload={entry_date:$("#stage21SellerDate").value||today(),direction:"money_out",amount,payment_method:$("#stage21SellerMethod").value||"cash",category_id:cat?.id||null,register_id:$("#stage21SellerRegister").value||null,description:$("#stage21SellerDesc").value.trim()||`Payment to seller ${activeSeller.name_en||""}`.trim(),project_id:plot?.project_id||null,plot_id:plotId,seller_id:activeSeller.id,reference_type:"seller_payment",reference_id:activeSeller.id,voucher_no:$("#stage21SellerVoucher").value.trim()||null,status:"active",created_by:state.profile?.id||null}; $("#stage21SellerMsg").textContent="Saving seller payment..."; const {error}=await supabaseClient.from("ledger_entries").insert(payload); if(error) return $("#stage21SellerMsg").textContent=error.message; $("#stage21SellerMsg").textContent="Seller payment saved into Daily Accounts."; $("#stage21SellerAmount").value=""; await loadSellerData(); if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
   }
-  async function voidAgentCommission(id){
-    const reason=prompt("Reason for voiding this commission payment?");
-    if(reason===null) return;
-    const {error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from Agent page"}).eq("id",id);
-    if(error) return alert(error.message);
-    await loadAgentCommissionData();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-  async function updateAgentBadges(){
-    const badges=$$('[data-stage20-agent-badge]');
-    if(!badges.length||!ready()) return;
-    const ids=[...new Set(badges.map(b=>b.dataset.stage20AgentBadge))];
-    const {data}=await supabaseClient.from("ledger_entries").select("agent_id,direction,amount,status").in("agent_id",ids);
-    const rows=(data||[]).filter(e=>e.status==="active");
-    badges.forEach(b=>{
-      const id=b.dataset.stage20AgentBadge;
-      const paid=rows.filter(e=>e.agent_id===id&&e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0);
-      b.textContent=`Commission paid: ${fmt(paid)}`;
-    });
-  }
-  function attachAgentButtons(){
-    if(!ready()) return;
-    $$("#agentsTableBody [data-edit-agent]").forEach(edit=>{
-      const id=edit.dataset.editAgent;
-      const box=edit.closest(".row-actions");
-      if(!box) return;
-      if(!box.querySelector(`[data-stage20-agent-commission="${id}"]`)){
-        const btn=document.createElement("button");
-        btn.type="button"; btn.className="small-btn"; btn.textContent="Commission"; btn.dataset.stage20AgentCommission=id;
-        btn.onclick=()=>openAgentCommission(id);
-        box.insertBefore(btn,edit);
-      }
-      const td=box.closest("td");
-      if(td&&!td.querySelector(`[data-stage20-agent-badge="${id}"]`)){
-        const badge=document.createElement("span");
-        badge.className="stage20-badge"; badge.dataset.stage20AgentBadge=id; badge.textContent="Commission paid: loading...";
-        td.appendChild(badge);
-      }
-    });
-    updateAgentBadges();
-  }
+  async function voidLedger(id, reload){ const reason=prompt("Reason for voiding this payment?"); if(reason===null) return; const {error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from module page"}).eq("id",id); if(error) return alert(error.message); await reload(); if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{}); }
 
-  function boot(){
-    addCss(); ensureSalePaymentModal(); ensureCaseViewModal(); ensureCaseMoneyModal(); ensureAgentModal();
-    setStageLabel(); attachSalePaymentButtons(); attachCaseButtons(); attachAgentButtons();
-    const saleBody=$("#saleDealsTableBody");
-    if(saleBody&&!saleBody.dataset.stage20Observer){ saleBody.dataset.stage20Observer="true"; new MutationObserver(()=>setTimeout(attachSalePaymentButtons,100)).observe(saleBody,{childList:true,subtree:true}); }
-    const caseBody=$("#casesTableBody");
-    if(caseBody&&!caseBody.dataset.stage20Observer){ caseBody.dataset.stage20Observer="true"; new MutationObserver(()=>setTimeout(attachCaseButtons,100)).observe(caseBody,{childList:true,subtree:true}); }
-    const agentBody=$("#agentsTableBody");
-    if(agentBody&&!agentBody.dataset.stage20Observer){ agentBody.dataset.stage20Observer="true"; new MutationObserver(()=>setTimeout(attachAgentButtons,100)).observe(agentBody,{childList:true,subtree:true}); }
-    setInterval(()=>{ setStageLabel(); attachSalePaymentButtons(); attachCaseButtons(); attachAgentButtons(); },2500);
-  }
+  async function updateSellerBadges(){ const badges=$$('[data-stage21-seller-badge]'); if(!badges.length||!ready()) return; const ids=[...new Set(badges.map(b=>b.dataset.stage21SellerBadge))]; const {data}=await supabaseClient.from("ledger_entries").select("seller_id,direction,amount,status").in("seller_id",ids); const rows=(data||[]).filter(e=>e.status==="active"); badges.forEach(b=>{const id=b.dataset.stage21SellerBadge; const paid=rows.filter(e=>e.seller_id===id&&e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0); b.textContent=`Seller paid: ${fmt(paid)}`;}); }
+  async function updateAgentBadges(){ const badges=$$('[data-stage21-agent-badge]'); if(!badges.length||!ready()) return; const ids=[...new Set(badges.map(b=>b.dataset.stage21AgentBadge))]; const {data}=await supabaseClient.from("ledger_entries").select("agent_id,direction,amount,status").in("agent_id",ids); const rows=(data||[]).filter(e=>e.status==="active"); badges.forEach(b=>{const id=b.dataset.stage21AgentBadge; const paid=rows.filter(e=>e.agent_id===id&&e.direction==="money_out").reduce((s,e)=>s+Number(e.amount||0),0); b.textContent=`Commission paid: ${fmt(paid)}`;}); }
+
+  function attachSellerButtons(){ if(!ready()) return; $$("#sellersTableBody [data-edit-seller]").forEach(edit=>{ const id=edit.dataset.editSeller, box=edit.closest(".row-actions"); if(!box) return; if(!box.querySelector(`[data-stage21-seller-pay="${id}"]`)){ const btn=document.createElement("button"); btn.type="button"; btn.className="small-btn"; btn.textContent="Payments"; btn.dataset.stage21SellerPay=id; btn.onclick=()=>openSeller(id); box.insertBefore(btn,edit); } const td=box.closest("td"); if(td&&!td.querySelector(`[data-stage21-seller-badge="${id}"]`)){ const b=document.createElement("span"); b.className="stage21-badge"; b.dataset.stage21SellerBadge=id; b.textContent="Seller paid: loading..."; td.appendChild(b); } }); updateSellerBadges(); }
+  function attachAgentButtons(){ if(!ready()) return; $$("#agentsTableBody [data-edit-agent]").forEach(edit=>{ const id=edit.dataset.editAgent, box=edit.closest(".row-actions"); if(!box) return; if(!box.querySelector(`[data-stage21-agent-commission="${id}"]`)){ const btn=document.createElement("button"); btn.type="button"; btn.className="small-btn"; btn.textContent="Commission"; btn.dataset.stage21AgentCommission=id; btn.onclick=()=>openAgent(id); box.insertBefore(btn,edit); } const td=box.closest("td"); if(td&&!td.querySelector(`[data-stage21-agent-badge="${id}"]`)){ const b=document.createElement("span"); b.className="stage21-badge"; b.dataset.stage21AgentBadge=id; b.textContent="Commission paid: loading..."; td.appendChild(b); } }); updateAgentBadges(); }
+  function attachSaleButtons(){ if(!ready()) return; const body=$("#saleDealsTableBody"); if(body&&!body.dataset.stage21Track){ body.dataset.stage21Track="true"; body.addEventListener("click",e=>{const v=e.target.closest("[data-view-sale-deal]"); if(v) activeDealId=v.dataset.viewSaleDeal;},true); } $$("#saleDealsTableBody [data-view-sale-deal]").forEach(view=>{ const id=view.dataset.viewSaleDeal, box=view.closest(".row-actions"); if(!box) return; if(!box.querySelector(`[data-stage21-sale-pay="${id}"]`)){ const btn=document.createElement("button"); btn.type="button"; btn.className="small-btn"; btn.textContent="Add Payment"; btn.dataset.stage21SalePay=id; btn.onclick=()=>openSale(id,false); box.insertBefore(btn,view); } }); const header=$("#saleDealDetailOverlay .page-actions.small-page-actions"); if(header&&!$("#stage21DetailAddPayment")){ const btn=document.createElement("button"); btn.id="stage21DetailAddPayment"; btn.type="button"; btn.className="primary"; btn.textContent="+ Add Payment"; btn.onclick=()=>activeDealId?openSale(activeDealId,true):alert("Open a sale deal from the table first."); header.appendChild(btn); } }
+  function attachCaseButtons(){ if(!ready()) return; $$("#casesTableBody [data-edit-case]").forEach(edit=>{ const id=edit.dataset.editCase, box=edit.closest(".row-actions"); if(!box) return; if(!box.querySelector(`[data-stage21-case-view="${id}"]`)){ const v=document.createElement("button"); v.type="button"; v.className="small-btn"; v.textContent="View"; v.dataset.stage21CaseView=id; v.onclick=()=>alert("Case View is preserved from previous stage. Use Money button or Edit for now if this shortcut does not open."); box.insertBefore(v,box.firstChild); } }); }
+
+  function boot(){ addCss(); ensureSaleModal(); ensureAgentModal(); ensureSellerModal(); label(); attachSaleButtons(); attachAgentButtons(); attachSellerButtons(); attachCaseButtons(); const maps=[["#saleDealsTableBody",attachSaleButtons],["#agentsTableBody",attachAgentButtons],["#sellersTableBody",attachSellerButtons],["#casesTableBody",attachCaseButtons]]; maps.forEach(([sel,fn])=>{ const body=$(sel); if(body&&!body.dataset.stage21Observer){ body.dataset.stage21Observer="true"; new MutationObserver(()=>setTimeout(fn,100)).observe(body,{childList:true,subtree:true}); } }); setInterval(()=>{ label(); attachSaleButtons(); attachAgentButtons(); attachSellerButtons(); attachCaseButtons(); },2500); }
   document.addEventListener("DOMContentLoaded",()=>setTimeout(boot,700));
 })();
