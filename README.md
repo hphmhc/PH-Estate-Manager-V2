@@ -1,16 +1,19 @@
 # PH Estate Manager V2
-## Stage 21.6
+## Stage 22
 
-Proper loading cleanup after Stage 21.5.
+Adds Project Financial Summary workflow.
 
-Fixes:
-- Removes `document.write` from the loader path.
-- This should stop the browser warning about parser-blocking cross-site scripts caused by `document.write`.
-- Loads the stable app shell safely through DOM parsing.
-- Loads Supabase, config, and app logic in order.
-- Applies the visible version label safely using plain string replacement before config runs.
-- Sidebar should show `Development Stage 21.6`.
-- Dashboard should show `Stage 21.6 Status`.
+Includes:
+- Adds a Financials button to each Project row.
+- Opens a Project Financial Summary modal.
+- Shows total Money In for the project.
+- Shows total Money Out for the project.
+- Shows Net Balance for the project.
+- Shows all linked project ledger entries.
+- Shows a small Net badge on each Project row.
+- Uses `ledger_entries` as the source of truth.
+- No duplicate money records are created.
+- Sidebar version label shows `Development Stage 22`.
 
 Preserved:
 - Seller Payments workflow.
@@ -19,4 +22,4 @@ Preserved:
 - Existing data and database records are untouched.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.6
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=22
