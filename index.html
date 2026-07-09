@@ -7,42 +7,40 @@
   <style>
     body{font-family:Arial,sans-serif;background:#f6f8f7;color:#111827;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}
     .box{background:white;border:1px solid #d1d5db;border-radius:18px;padding:24px;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.08)}
-    h1{margin:0 0 8px;color:#064e3b}p{line-height:1.5}.muted{color:#6b7280}.err{color:#b91c1c;white-space:pre-wrap}
+    h1{margin:0 0 8px;color:#064e3b}p{line-height:1.5}.muted{color:#6b7280}.err{color:#b91c1c;white-space:pre-wrap}.btn{display:inline-block;background:#047857;color:white;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700}
   </style>
 </head>
 <body>
   <div class="box" id="loaderBox">
     <h1>PH Estate Manager V2</h1>
-    <p><strong>Loading Development Stage 21.1...</strong></p>
-    <p class="muted">Refreshing app shell and forcing latest stage files.</p>
-    <p id="loaderMsg" class="muted"></p>
+    <p><strong>Loading Development Stage 21.2...</strong></p>
+    <p class="muted">Repairing Stage 21.1 loader and loading the stable app shell.</p>
+    <p id="loaderMsg" class="muted">Starting...</p>
   </div>
   <script>
     (async function(){
-      const VERSION = "21.1";
-      const ORIGINAL_INDEX_BLOB = "19908e0d98a68ff5918ccc12d4de3868e9a0ee08";
-      const API_URL = `https://api.github.com/repos/hphmhc/PH-Estate-Manager-V2/git/blobs/${ORIGINAL_INDEX_BLOB}`;
+      const VERSION = "21.2";
+      const STABLE_INDEX_URL = "https://raw.githubusercontent.com/hphmhc/PH-Estate-Manager-V2/8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html";
       const msg = document.getElementById("loaderMsg");
       try {
         msg.textContent = "Fetching stable app shell...";
-        const res = await fetch(API_URL, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Could not load app shell: ${res.status}`);
-        const blob = await res.json();
-        let html = decodeURIComponent(escape(atob(String(blob.content || "").replace(/\s/g, ""))));
+        const res = await fetch(STABLE_INDEX_URL + "?cache=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) throw new Error("Could not load stable app shell: " + res.status);
+        let html = await res.text();
         html = html
-          .replace(/styles\.css\?v=15/g, `styles.css?v=${VERSION}`)
-          .replace(/config\.js\?v=15/g, `config.js?v=21`)
-          .replace(/app\.js\?v=15/g, `app.js?v=${VERSION}`)
-          .replace(/Development Stage 15/g, `Development Stage ${VERSION}`)
-          .replace(/Stage 15 Status/g, `Stage ${VERSION} Status`)
-          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Cache fix active. The app is loading latest stage files through the Stage 21.1 loader.");
-        const versionScript = `<script>\n(function(){\n  const V='Development Stage ${VERSION}';\n  function setV(){\n    const l=document.querySelector('.sidebar-brand small'); if(l) l.textContent=V;\n    const h=[...document.querySelectorAll('#page-dashboard .panel h2')].find(x=>x.textContent.includes('Stage'));\n    if(h){ h.textContent='Stage ${VERSION} Status'; const p=h.parentElement&&h.parentElement.querySelector('p'); if(p) p.textContent='Cache fix active. Latest stage files are being loaded.'; }\n  }\n  document.addEventListener('DOMContentLoaded',()=>setTimeout(setV,300));\n  setInterval(setV,1500);\n})();\n<\/script>`;
-        html = html.replace("</body>", `${versionScript}\n</body>`);
+          .replace(/styles\.css\?v=15/g, "styles.css?v=" + VERSION)
+          .replace(/config\.js\?v=15/g, "config.js?v=21")
+          .replace(/app\.js\?v=15/g, "app.js?v=" + VERSION)
+          .replace(/Development Stage 15/g, "Development Stage " + VERSION)
+          .replace(/Stage 15 Status/g, "Stage " + VERSION + " Status")
+          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21.2 repair active. Latest config features are loading with a fixed app shell.");
+        const versionScript = `<script>\n(function(){\n  const V='Development Stage ${VERSION}';\n  function setV(){\n    const l=document.querySelector('.sidebar-brand small'); if(l) l.textContent=V;\n    const h=[...document.querySelectorAll('#page-dashboard .panel h2')].find(x=>x.textContent.includes('Stage'));\n    if(h){ h.textContent='Stage ${VERSION} Status'; const p=h.parentElement&&h.parentElement.querySelector('p'); if(p) p.textContent='Stage 21.2 repair active. Latest config features are loading with a fixed app shell.'; }\n  }\n  document.addEventListener('DOMContentLoaded',()=>setTimeout(setV,300));\n  setInterval(setV,1500);\n})();\n<\/script>`;
+        html = html.replace("</body>", versionScript + "\n</body>");
         document.open();
         document.write(html);
         document.close();
       } catch (err) {
-        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">Stage 21.1 loader failed: ${String(err.message || err)}</p><p>Try refreshing once, or open with ?v=21.1.</p>`;
+        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">Stage 21.2 repair loader failed: ${String(err.message || err)}</p><p>This is a loader issue, not a data issue.</p><a class="btn" href="./?v=21.2&retry=1">Retry</a>`;
       }
     })();
   </script>
