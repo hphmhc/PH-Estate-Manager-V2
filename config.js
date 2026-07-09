@@ -1,11 +1,10 @@
 const PH_CONFIG = {
   appName: "PH Estate Manager V2",
-  stage: "stage-18",
+  stage: "stage-19",
   supabaseUrl: "https://rxoqinweqyrfhgdauokd.supabase.co",
   supabasePublishableKey: "sb_publishable_tsdi2vctaisygqts6iFogA_RMwFNlj4"
 };
 
-// Hotfix bridge for older app.js sale workflow save logic.
 try {
   Object.defineProperty(window, "workflowPaymentStatus", {
     configurable: true,
@@ -16,233 +15,80 @@ try {
   });
 } catch { window.workflowPaymentStatus = "payment_pending"; }
 
-(function stage18CaseViewAndMoney(){
-  const STAGE = "Development Stage 18";
-  const $ = s => document.querySelector(s);
-  const $$ = s => Array.from(document.querySelectorAll(s));
-  const esc = v => String(v ?? "").replace(/[&<>'\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'\"':"&quot;"}[c]));
-  const fmt = v => "Rs. " + Number(v || 0).toLocaleString("en-PK");
-  const parseMoneyLocal = v => Number(String(v ?? "").replace(/,/g,"").replace(/[^0-9.]/g,"")) || 0;
-  const today = () => new Date().toISOString().slice(0,10);
-  let activeCase = null;
-
-  function ready(){ return typeof supabaseClient !== "undefined" && typeof state !== "undefined"; }
-  function projectName(id){ return typeof getProjectName === "function" ? getProjectName(id) : "-"; }
-  function plotLabel(id){ return typeof getPlotLabel === "function" ? getPlotLabel(id) : "-"; }
-  function clientName(id){ return typeof getClientName === "function" ? getClientName(id) : "-"; }
-  function sellerName(id){ return typeof getSellerName === "function" ? getSellerName(id) : "-"; }
-  function categoryName(id){ return typeof getCategoryName === "function" ? getCategoryName(id) : "-"; }
-
-  async function ensureLists(){
-    if(typeof ensureProjectsLoaded === "function") await ensureProjectsLoaded().catch(()=>{});
-    if(typeof ensurePlotsLoaded === "function") await ensurePlotsLoaded().catch(()=>{});
-    if(typeof ensureClientsLoaded === "function") await ensureClientsLoaded().catch(()=>{});
-    if(typeof ensureSellersLoaded === "function") await ensureSellersLoaded().catch(()=>{});
-    if(typeof ensureAccountCategoriesLoaded === "function") await ensureAccountCategoriesLoaded().catch(()=>{});
-    if(typeof ensureRegistersLoaded === "function") await ensureRegistersLoaded().catch(()=>{});
+(function stage19(){
+  const STAGE="Development Stage 19";
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const esc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+  const fmt=v=>"Rs. "+Number(v||0).toLocaleString("en-PK");
+  const money=v=>Number(String(v??"").replace(/,/g,"").replace(/[^0-9.]/g,""))||0;
+  const today=()=>new Date().toISOString().slice(0,10);
+  let activeCase=null, activeDealId=null, activeDeal=null;
+  function ready(){return typeof supabaseClient!=="undefined"&&typeof state!=="undefined"}
+  function pn(id){return typeof getProjectName==="function"?getProjectName(id):"-"}
+  function pl(id){return typeof getPlotLabel==="function"?getPlotLabel(id):"-"}
+  function cn(id){return typeof getClientName==="function"?getClientName(id):"-"}
+  function sn(id){return typeof getSellerName==="function"?getSellerName(id):"-"}
+  function catn(id){return typeof getCategoryName==="function"?getCategoryName(id):"-"}
+  async function ensure(){
+    for(const fn of ["ensureProjectsLoaded","ensurePlotsLoaded","ensureClientsLoaded","ensureSellersLoaded","ensureAgentsLoaded","ensureAccountCategoriesLoaded","ensureRegistersLoaded"]){
+      if(typeof window[fn]==="function") await window[fn]().catch(()=>{});
+      else if(typeof eval("typeof "+fn)!=="undefined") await eval(fn+"()").catch(()=>{});
+    }
   }
-
   function addCss(){
-    if($("#stage18Css")) return;
-    const s=document.createElement("style");
-    s.id="stage18Css";
-    s.textContent=`.stage18-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:grid;place-items:center;padding:18px}.stage18-modal.hidden{display:none!important}.stage18-box{width:min(980px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.22)}.stage18-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.stage18-head-actions{display:flex;gap:8px;flex-wrap:wrap}.stage18-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.stage18-span{grid-column:span 2}.stage18-detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fafc}.stage18-detail small{display:block;color:var(--muted);font-weight:800;margin-bottom:4px}.stage18-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.stage18-card{border:1px solid var(--line);border-radius:14px;padding:10px;background:#f8fafc}.stage18-badge{display:block;margin-top:7px;color:#065f46;font-weight:800;font-size:12px;line-height:1.4}.stage18-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:12px;font-weight:700}@media(max-width:900px){.stage18-grid,.stage18-cards{grid-template-columns:1fr}.stage18-span{grid-column:span 1}.stage18-head{flex-direction:column}}`;
+    if($("#s19css"))return;
+    const s=document.createElement("style");s.id="s19css";
+    s.textContent=`.s19modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:95;display:grid;place-items:center;padding:18px}.s19modal.hidden{display:none!important}.s19box{width:min(980px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.22)}.s19head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.s19actions{display:flex;gap:8px;flex-wrap:wrap}.s19grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.s19span{grid-column:span 2}.s19cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.s19card,.s19detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:#f8fafc}.s19detail small,.s19card small{display:block;color:var(--muted);font-weight:800;margin-bottom:4px}.s19note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:12px;font-weight:700}.s19badge{display:block;margin-top:7px;color:#065f46;font-weight:800;font-size:12px;line-height:1.4}@media(max-width:900px){.s19grid,.s19cards{grid-template-columns:1fr}.s19span{grid-column:span 1}.s19head{flex-direction:column}}`;
     document.head.appendChild(s);
   }
+  function regOptions(){return `<option value="">Default / no register</option>`+(state.registers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.name||"")}</option>`).join("")}
+  function plotPayCat(){return (state.accountCategories||[]).find(c=>String(c.code||"").toUpperCase()==="PLOT_PAYMENT")||(state.accountCategories||[]).find(c=>String(c.name||"").toLowerCase().includes("plot payment"))}
+  function caseCatOptions(){const all=state.accountCategories||[], list=all.filter(c=>`${c.code||""} ${c.name||""}`.toLowerCase().match(/case|legal|court|office|misc/));return `<option value="">No category</option>`+(list.length?list:all).map(c=>`<option value="${esc(c.id)}" data-direction="${esc(c.default_direction||"")}">${esc(c.name||"")}</option>`).join("")}
+  function formatInput(el){if(el&&typeof formatMoneyInputValue==="function")el.value=formatMoneyInputValue(el.value)}
 
-  function categoryOptions(){
-    const all = state.accountCategories || [];
-    const preferred = all.filter(c => `${c.code||""} ${c.name||""}`.toLowerCase().match(/case|legal|court|office|misc/));
-    const list = preferred.length ? preferred : all;
-    return `<option value="">No category</option>` + list.map(c=>`<option value="${esc(c.id)}" data-direction="${esc(c.default_direction||"")}">${esc(c.name||"")}</option>`).join("");
+  function ensureCaseView(){
+    addCss(); if($("#s19CaseView"))return;
+    const el=document.createElement("div");el.id="s19CaseView";el.className="s19modal hidden";
+    el.innerHTML=`<div class="s19box"><div class="s19head"><div><h2 id="s19CaseTitle">Case Details</h2><p class="muted" id="s19CaseSub">View full case record.</p></div><div class="s19actions"><button class="primary" id="s19CaseMoneyBtn" type="button">Money</button><button class="ghost" id="s19CaseClose" type="button">Close</button></div></div><div id="s19CaseDetails" class="s19grid"></div><h3>Case Ledger Summary</h3><div class="s19cards" id="s19CaseSummary"></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>In</th><th>Out</th><th>Status</th></tr></thead><tbody id="s19CaseRows"><tr><td colspan="5">No case selected.</td></tr></tbody></table></div></div>`;
+    document.body.appendChild(el);$("#s19CaseClose").onclick=()=>el.classList.add("hidden");$("#s19CaseMoneyBtn").onclick=()=>activeCase&&openCaseMoney(activeCase.id);el.onclick=e=>{if(e.target.id==="s19CaseView")el.classList.add("hidden")};
   }
-  function registerOptions(){
-    return `<option value="">Default / no register</option>` + (state.registers||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.name||"")}</option>`).join("");
+  function ensureCaseMoney(){
+    addCss(); if($("#s19CaseMoney"))return;
+    const el=document.createElement("div");el.id="s19CaseMoney";el.className="s19modal hidden";
+    el.innerHTML=`<div class="s19box"><div class="s19head"><div><h2>Case Money Entry</h2><p class="muted" id="s19CaseMoneyTitle">Save case income or expense.</p></div><button class="ghost" id="s19CaseMoneyClose" type="button">Close</button></div><div class="s19cards" id="s19CaseMoneySummary"></div><form id="s19CaseMoneyForm" class="s19grid"><div><label>Date *</label><input id="s19CaseMoneyDate" type="date" required></div><div><label>Direction *</label><select id="s19CaseMoneyDirection"><option value="money_out">Money Out / Expense</option><option value="money_in">Money In / Received</option></select></div><div><label>Amount *</label><input id="s19CaseMoneyAmount" inputmode="numeric" required></div><div><label>Payment Method</label><select id="s19CaseMoneyMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Category</label><select id="s19CaseMoneyCategory"></select></div><div><label>Payment Register</label><select id="s19CaseMoneyRegister"></select></div><div><label>Receipt No</label><input id="s19CaseMoneyReceipt"></div><div><label>Voucher No</label><input id="s19CaseMoneyVoucher"></div><div class="s19span"><label>Description *</label><textarea id="s19CaseMoneyDesc" rows="3" required></textarea></div><div class="s19span s19note">This saves once into Daily Accounts and links to this case.</div><div class="s19span form-actions"><button class="primary" type="submit">Save Case Money</button><button class="ghost" id="s19CaseMoneyCancel" type="button">Cancel</button></div></form><p id="s19CaseMoneyMsg" class="message"></p><h3>Case Ledger Entries</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>In</th><th>Out</th><th>Status</th><th>Actions</th></tr></thead><tbody id="s19CaseMoneyRows"><tr><td colspan="7">No case selected.</td></tr></tbody></table></div></div>`;
+    document.body.appendChild(el);$("#s19CaseMoneyClose").onclick=closeCaseMoney;$("#s19CaseMoneyCancel").onclick=closeCaseMoney;$("#s19CaseMoneyAmount").oninput=e=>formatInput(e.target);$("#s19CaseMoneyCategory").onchange=()=>{const d=$("#s19CaseMoneyCategory")?.selectedOptions?.[0]?.dataset?.direction;if(d)$("#s19CaseMoneyDirection").value=d};$("#s19CaseMoneyForm").onsubmit=saveCaseMoney;el.onclick=e=>{if(e.target.id==="s19CaseMoney")closeCaseMoney()};
   }
-
-  function ensureCaseViewModal(){
-    addCss();
-    if($("#stage18CaseViewModal")) return;
-    const el=document.createElement("div");
-    el.id="stage18CaseViewModal";
-    el.className="stage18-modal hidden";
-    el.innerHTML=`<div class="stage18-box"><div class="stage18-head"><div><h2 id="stage18ViewTitle">Case Details</h2><p class="muted" id="stage18ViewSubtitle">View full case record.</p></div><div class="stage18-head-actions"><button class="primary" type="button" id="stage18ViewMoney">Money</button><button class="ghost" type="button" id="stage18ViewClose">Close</button></div></div><div id="stage18ViewDetails" class="stage18-grid"></div><h3>Case Ledger Summary</h3><div class="stage18-cards" id="stage18ViewMoneySummary"></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>In</th><th>Out</th><th>Status</th></tr></thead><tbody id="stage18ViewMoneyRows"><tr><td colspan="5">No case selected.</td></tr></tbody></table></div></div>`;
-    document.body.appendChild(el);
-    $("#stage18ViewClose").onclick=closeCaseView;
-    $("#stage18ViewMoney").onclick=()=>{ if(activeCase) openMoneyModal(activeCase.id); };
-    el.onclick=e=>{ if(e.target.id==="stage18CaseViewModal") closeCaseView(); };
-  }
-
-  function ensureMoneyModal(){
-    addCss();
-    if($("#stage18MoneyModal")) return;
-    const el=document.createElement("div");
-    el.id="stage18MoneyModal";
-    el.className="stage18-modal hidden";
-    el.innerHTML=`<div class="stage18-box"><div class="stage18-head"><div><h2>Case Money Entry</h2><p class="muted" id="stage18MoneyTitle">Save case-related income or expense into the central ledger.</p></div><button class="ghost" type="button" id="stage18MoneyClose">Close</button></div><div class="stage18-cards" id="stage18MoneySummary"></div><form id="stage18MoneyForm" class="stage18-grid"><div><label>Date *</label><input id="stage18Date" type="date" required></div><div><label>Direction *</label><select id="stage18Direction"><option value="money_out">Money Out / Expense</option><option value="money_in">Money In / Received</option></select></div><div><label>Amount *</label><input id="stage18Amount" inputmode="numeric" required placeholder="Example: 25,000"></div><div><label>Payment Method</label><select id="stage18Method"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Category</label><select id="stage18Category"></select></div><div><label>Payment Register</label><select id="stage18Register"></select></div><div><label>Receipt No</label><input id="stage18Receipt"></div><div><label>Voucher No</label><input id="stage18Voucher"></div><div class="stage18-span"><label>Description *</label><textarea id="stage18Desc" rows="3" required></textarea></div><div class="stage18-span stage18-note">This saves once into Daily Accounts / central ledger and links to this case. It does not duplicate money.</div><div class="stage18-span form-actions"><button class="primary" type="submit">Save Case Money</button><button class="ghost" type="button" id="stage18MoneyCancel">Cancel</button></div></form><p id="stage18MoneyMsg" class="message"></p><h3>Case Ledger Entries</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>In</th><th>Out</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stage18MoneyRows"><tr><td colspan="7">No case selected.</td></tr></tbody></table></div></div>`;
-    document.body.appendChild(el);
-    $("#stage18MoneyClose").onclick=closeMoneyModal;
-    $("#stage18MoneyCancel").onclick=closeMoneyModal;
-    el.onclick=e=>{ if(e.target.id==="stage18MoneyModal") closeMoneyModal(); };
-    $("#stage18Amount").oninput=e=>{ if(typeof formatMoneyInputValue==="function") e.target.value=formatMoneyInputValue(e.target.value); };
-    $("#stage18Category").onchange=()=>{ const d=$("#stage18Category")?.selectedOptions?.[0]?.dataset?.direction; if(d) $("#stage18Direction").value=d; };
-    $("#stage18MoneyForm").onsubmit=saveCaseMoney;
-  }
-
-  function closeCaseView(){ $("#stage18CaseViewModal")?.classList.add("hidden"); }
-  function closeMoneyModal(){ $("#stage18MoneyModal")?.classList.add("hidden"); }
-
   async function openCaseView(id){
-    if(!ready()) return alert("App is still loading. Try again in a moment.");
-    await ensureLists();
-    activeCase=(state.cases||[]).find(c=>c.id===id);
-    if(!activeCase) return alert("Case not found. Refresh Cases and try again.");
-    ensureCaseViewModal();
-    $("#stage18CaseViewModal").classList.remove("hidden");
-    $("#stage18ViewTitle").textContent=activeCase.case_title||"Case Details";
-    $("#stage18ViewSubtitle").textContent=`${activeCase.case_type||"Case"} · ${activeCase.case_status||""}`;
-    const linkedProject = activeCase.linked_project_id ? projectName(activeCase.linked_project_id) : "-";
-    const linkedPlot = activeCase.linked_plot_id ? plotLabel(activeCase.linked_plot_id) : "-";
-    const linkedClient = activeCase.linked_client_id ? clientName(activeCase.linked_client_id) : "-";
-    const linkedSeller = activeCase.linked_seller_id ? sellerName(activeCase.linked_seller_id) : "-";
-    $("#stage18ViewDetails").innerHTML=`<div class="stage18-detail"><small>Case Title</small><strong>${esc(activeCase.case_title||"-")}</strong></div><div class="stage18-detail"><small>Status</small><strong>${esc(activeCase.case_status||"-")}</strong></div><div class="stage18-detail"><small>Type</small>${esc(activeCase.case_type||"-")}</div><div class="stage18-detail"><small>Case No</small>${esc(activeCase.case_number||"-")}</div><div class="stage18-detail"><small>Court / Office</small>${esc(activeCase.court_or_office_name||"-")}</div><div class="stage18-detail"><small>Start Date</small>${esc(activeCase.start_date||"-")}</div><div class="stage18-detail"><small>Lawyer</small>${esc(activeCase.lawyer_name||"-")}<br><small>${esc(activeCase.lawyer_phone||"")}</small></div><div class="stage18-detail"><small>Linked Project / Plot</small>${esc(linkedProject)} | ${esc(linkedPlot)}</div><div class="stage18-detail"><small>Linked Client</small>${esc(linkedClient)}</div><div class="stage18-detail"><small>Linked Seller</small>${esc(linkedSeller)}</div><div class="stage18-detail stage18-span"><small>Notes</small>${esc(activeCase.notes||"-")}</div>`;
-    await loadCaseMoneyTables();
+    if(!ready())return alert("App is still loading.");await ensure();activeCase=(state.cases||[]).find(c=>c.id===id);if(!activeCase)return alert("Case not found. Refresh Cases and try again.");ensureCaseView();$("#s19CaseView").classList.remove("hidden");$("#s19CaseTitle").textContent=activeCase.case_title||"Case Details";$("#s19CaseSub").textContent=`${activeCase.case_type||"Case"} · ${activeCase.case_status||""}`;
+    $("#s19CaseDetails").innerHTML=`<div class="s19detail"><small>Case Title</small><strong>${esc(activeCase.case_title||"-")}</strong></div><div class="s19detail"><small>Status</small>${esc(activeCase.case_status||"-")}</div><div class="s19detail"><small>Type</small>${esc(activeCase.case_type||"-")}</div><div class="s19detail"><small>Case No</small>${esc(activeCase.case_number||"-")}</div><div class="s19detail"><small>Court / Office</small>${esc(activeCase.court_or_office_name||"-")}</div><div class="s19detail"><small>Start Date</small>${esc(activeCase.start_date||"-")}</div><div class="s19detail"><small>Lawyer</small>${esc(activeCase.lawyer_name||"-")}<br>${esc(activeCase.lawyer_phone||"")}</div><div class="s19detail"><small>Project / Plot</small>${esc(activeCase.linked_project_id?pn(activeCase.linked_project_id):"-")} | ${esc(activeCase.linked_plot_id?pl(activeCase.linked_plot_id):"-")}</div><div class="s19detail"><small>Client</small>${esc(activeCase.linked_client_id?cn(activeCase.linked_client_id):"-")}</div><div class="s19detail"><small>Seller</small>${esc(activeCase.linked_seller_id?sn(activeCase.linked_seller_id):"-")}</div><div class="s19detail s19span"><small>Notes</small>${esc(activeCase.notes||"-")}</div>`;await loadCaseTables();
   }
+  async function openCaseMoney(id){
+    if(!ready())return alert("App is still loading.");await ensure();activeCase=(state.cases||[]).find(c=>c.id===id)||activeCase;if(!activeCase)return alert("Case not found.");ensureCaseMoney();$("#s19CaseMoney").classList.remove("hidden");$("#s19CaseMoneyTitle").textContent=`${activeCase.case_title||"Case"} · ${activeCase.case_number||"No case number"}`;$("#s19CaseMoneyDate").value=today();$("#s19CaseMoneyDirection").value="money_out";$("#s19CaseMoneyAmount").value="";$("#s19CaseMoneyReceipt").value="";$("#s19CaseMoneyVoucher").value="";$("#s19CaseMoneyDesc").value=`Case expense - ${activeCase.case_title||"case"}`;$("#s19CaseMoneyCategory").innerHTML=caseCatOptions();$("#s19CaseMoneyRegister").innerHTML=regOptions();$("#s19CaseMoneyMsg").textContent="";await loadCaseTables();
+  }
+  function closeCaseMoney(){$("#s19CaseMoney")?.classList.add("hidden")}
+  async function caseRows(){if(!activeCase)return[];const{data,error}=await supabaseClient.from("ledger_entries").select("*").eq("case_id",activeCase.id).order("entry_date",{ascending:false});if(error)throw error;return data||[]}
+  function summary(rows,sel){const a=rows.filter(r=>r.status==="active"),inn=a.filter(r=>r.direction==="money_in").reduce((s,r)=>s+Number(r.amount||0),0),out=a.filter(r=>r.direction==="money_out").reduce((s,r)=>s+Number(r.amount||0),0);if($(sel))$(sel).innerHTML=`<div class="s19card"><small>Received</small><strong>${fmt(inn)}</strong></div><div class="s19card"><small>Paid / Expenses</small><strong>${fmt(out)}</strong></div><div class="s19card"><small>Net</small><strong>${fmt(inn-out)}</strong></div>`}
+  async function loadCaseTables(){let rows=[];try{rows=await caseRows()}catch{}summary(rows,"#s19CaseSummary");summary(rows,"#s19CaseMoneySummary");if($("#s19CaseRows"))$("#s19CaseRows").innerHTML=rows.length?rows.map(r=>`<tr class="${r.status==="voided"?"voided-row":""}"><td>${esc(r.entry_date||"-")}</td><td>${esc(r.description||"-")}</td><td>${r.direction==="money_in"?fmt(r.amount):"-"}</td><td>${r.direction==="money_out"?fmt(r.amount):"-"}</td><td><span class="status-badge ${esc(r.status||"")}">${esc(r.status||"-")}</span></td></tr>`).join(""):`<tr><td colspan="5">No case ledger entries yet.</td></tr>`;if($("#s19CaseMoneyRows")){$("#s19CaseMoneyRows").innerHTML=rows.length?rows.map(r=>`<tr class="${r.status==="voided"?"voided-row":""}"><td>${esc(r.entry_date||"-")}</td><td>${esc(catn(r.category_id))}</td><td>${esc(r.description||"-")}</td><td>${r.direction==="money_in"?fmt(r.amount):"-"}</td><td>${r.direction==="money_out"?fmt(r.amount):"-"}</td><td><span class="status-badge ${esc(r.status||"")}">${esc(r.status||"-")}</span></td><td>${r.status==="active"?`<button class="danger-btn" data-s19-case-void="${esc(r.id)}">Void</button>`:"-"}</td></tr>`).join(""):`<tr><td colspan="7">No case ledger entries yet.</td></tr>`;$$('[data-s19-case-void]').forEach(b=>b.onclick=()=>voidCaseMoney(b.dataset.s19CaseVoid))}updateCaseBadges()}
+  async function saveCaseMoney(e){e.preventDefault();const amount=money($("#s19CaseMoneyAmount").value),desc=$("#s19CaseMoneyDesc").value.trim();if(!amount)return $("#s19CaseMoneyMsg").textContent="Amount must be greater than zero.";if(!desc)return $("#s19CaseMoneyMsg").textContent="Description is required.";const p={entry_date:$("#s19CaseMoneyDate").value||today(),direction:$("#s19CaseMoneyDirection").value,amount,payment_method:$("#s19CaseMoneyMethod").value||"cash",category_id:$("#s19CaseMoneyCategory").value||null,register_id:$("#s19CaseMoneyRegister").value||null,description:desc,project_id:activeCase.linked_project_id||null,plot_id:activeCase.linked_plot_id||null,client_id:activeCase.linked_client_id||null,seller_id:activeCase.linked_seller_id||null,case_id:activeCase.id,receipt_no:$("#s19CaseMoneyReceipt").value.trim()||null,voucher_no:$("#s19CaseMoneyVoucher").value.trim()||null,reference_type:"case_money",reference_id:activeCase.id,status:"active",created_by:state.profile?.id||null};$("#s19CaseMoneyMsg").textContent="Saving...";const{error}=await supabaseClient.from("ledger_entries").insert(p);if(error)return $("#s19CaseMoneyMsg").textContent=error.message;$("#s19CaseMoneyMsg").textContent="Saved into Daily Accounts.";$("#s19CaseMoneyAmount").value="";await loadCaseTables();if(typeof refreshDashboardCounts==="function")await refreshDashboardCounts().catch(()=>{})}
+  async function voidCaseMoney(id){const reason=prompt("Reason for voiding this case money entry?");if(reason===null)return;const{error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from Case page"}).eq("id",id);if(error)return alert(error.message);await loadCaseTables();if(typeof refreshDashboardCounts==="function")await refreshDashboardCounts().catch(()=>{})}
 
-  async function openMoneyModal(id){
-    if(!ready()) return alert("App is still loading. Try again in a moment.");
-    await ensureLists();
-    activeCase=(state.cases||[]).find(c=>c.id===id) || activeCase;
-    if(!activeCase) return alert("Case not found. Refresh Cases and try again.");
-    ensureMoneyModal();
-    $("#stage18MoneyModal").classList.remove("hidden");
-    $("#stage18MoneyTitle").textContent=`${activeCase.case_title||"Case"} · ${activeCase.case_number||"No case number"}`;
-    $("#stage18Date").value=today();
-    $("#stage18Direction").value="money_out";
-    $("#stage18Amount").value="";
-    $("#stage18Receipt").value="";
-    $("#stage18Voucher").value="";
-    $("#stage18Desc").value=`Case expense - ${activeCase.case_title||"case"}`;
-    $("#stage18Category").innerHTML=categoryOptions();
-    $("#stage18Register").innerHTML=registerOptions();
-    $("#stage18MoneyMsg").textContent="";
-    await loadCaseMoneyTables();
+  function ensureSaleModal(){
+    addCss(); if($("#s19SalePay"))return;
+    const el=document.createElement("div");el.id="s19SalePay";el.className="s19modal hidden";
+    el.innerHTML=`<div class="s19box"><div class="s19head"><div><h2>Add Sale Deal Payment</h2><p class="muted" id="s19SaleTitle">Save payment once into ledger and allocation.</p></div><button class="ghost" id="s19SaleClose" type="button">Close</button></div><div class="s19cards" id="s19SaleSummary"></div><form id="s19SaleForm" class="s19grid"><div><label>Date *</label><input id="s19SaleDate" type="date" required></div><div><label>Amount *</label><input id="s19SaleAmount" inputmode="numeric" required></div><div><label>Client *</label><select id="s19SaleClient" required></select></div><div><label>Plot *</label><select id="s19SalePlot" required></select></div><div><label>Payment Method</label><select id="s19SaleMethod"><option value="cash">Cash</option><option value="online">Online</option><option value="cheque">Cheque</option><option value="exchange">Exchange</option></select></div><div><label>Payment Register</label><select id="s19SaleRegister"></select></div><div><label>Receipt No</label><input id="s19SaleReceipt"></div><div><label>Description</label><input id="s19SaleDesc"></div><div class="s19span s19note">This creates one ledger entry and one payment allocation. It does not duplicate money.</div><div class="s19span form-actions"><button class="primary" type="submit">Save Payment</button><button class="ghost" id="s19SaleCancel" type="button">Cancel</button></div></form><p id="s19SaleMsg" class="message"></p><h3>Payment History</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead><tbody id="s19SaleRows"><tr><td colspan="7">No sale selected.</td></tr></tbody></table></div></div>`;
+    document.body.appendChild(el);$("#s19SaleClose").onclick=closeSale;$("#s19SaleCancel").onclick=closeSale;$("#s19SaleAmount").oninput=e=>formatInput(e.target);$("#s19SaleForm").onsubmit=saveSalePayment;el.onclick=e=>{if(e.target.id==="s19SalePay")closeSale()};
   }
+  function closeSale(){$("#s19SalePay")?.classList.add("hidden")}
+  async function findDeal(id){if(typeof loadSaleDealsExpanded==="function")await loadSaleDealsExpanded().catch(()=>{});return(state.saleDealsView||[]).find(d=>d.id===id)}
+  async function openSale(id){if(!ready())return alert("App is still loading.");await ensure();ensureSaleModal();activeDealId=id||activeDealId;activeDeal=await findDeal(activeDealId);if(!activeDeal)return alert("Sale deal not found. Refresh and try again.");$("#s19SalePay").classList.remove("hidden");$("#s19SaleTitle").textContent=`${activeDeal.deal_no||"Sale Deal"} · ${pn(activeDeal.project_id)}`;$("#s19SaleDate").value=today();$("#s19SaleAmount").value="";$("#s19SaleReceipt").value="";$("#s19SaleDesc").value=`Payment for ${activeDeal.deal_no||"sale deal"}`;$("#s19SaleRegister").innerHTML=regOptions();$("#s19SaleClient").innerHTML=(activeDeal._clients||[]).map(c=>`<option value="${esc(c.client_id)}">${esc(c.client?.name_en||cn(c.client_id))}</option>`).join("");$("#s19SalePlot").innerHTML=(activeDeal._plots||[]).map(p=>`<option value="${esc(p.plot_id)}">${esc(p.plot?pl(p.plot.id):pl(p.plot_id))}</option>`).join("");$("#s19SaleMsg").textContent="";await loadSaleRows()}
+  async function loadSaleRows(){activeDeal=await findDeal(activeDealId);if(!activeDeal)return;$("#s19SaleSummary").innerHTML=`<div class="s19card"><small>Sale Value</small><strong>${fmt(activeDeal._totalSale)}</strong></div><div class="s19card"><small>Received</small><strong>${fmt(activeDeal._received)}</strong></div><div class="s19card"><small>Remaining</small><strong>${fmt(activeDeal._remaining)}</strong></div>`;const rows=activeDeal._payments||[],body=$("#s19SaleRows");if(!rows.length){body.innerHTML=`<tr><td colspan="7">No payments found.</td></tr>`;return}body.innerHTML=rows.map(p=>`<tr class="${p.ledger?.status==="voided"?"voided-row":""}"><td>${esc(p.ledger?.entry_date||"-")}</td><td>${esc(cn(p.client_id))}</td><td>${fmt(p.allocated_amount)}</td><td>${esc(p.ledger?.payment_method||"-")}</td><td>${esc(p.ledger?.receipt_no||"-")}</td><td><span class="status-badge ${esc(p.ledger?.status||"active")}">${esc(p.ledger?.status||"active")}</span></td><td>${p.ledger?.status==="active"?`<button class="danger-btn" data-s19-sale-void="${esc(p.ledger_entry_id)}">Void</button>`:"-"}</td></tr>`).join("");$$('[data-s19-sale-void]').forEach(b=>b.onclick=()=>voidSalePayment(b.dataset.s19SaleVoid))}
+  async function saveSalePayment(e){e.preventDefault();const amount=money($("#s19SaleAmount").value),clientId=$("#s19SaleClient").value,plotId=$("#s19SalePlot").value;if(!amount)return $("#s19SaleMsg").textContent="Amount must be greater than zero.";if(!clientId||!plotId)return $("#s19SaleMsg").textContent="Client and plot are required.";activeDeal=await findDeal(activeDealId);if(!activeDeal)return $("#s19SaleMsg").textContent="Sale deal not found.";const category=plotPayCat();const p={entry_date:$("#s19SaleDate").value||today(),direction:"money_in",amount,payment_method:$("#s19SaleMethod").value||"cash",category_id:category?.id||null,register_id:$("#s19SaleRegister").value||null,description:$("#s19SaleDesc").value.trim()||`Payment for ${activeDeal.deal_no||"sale deal"}`,project_id:activeDeal.project_id||null,plot_id:plotId,client_id:clientId,sale_deal_id:activeDeal.id,reference_type:"sale_deal_payment",reference_id:activeDeal.id,receipt_no:$("#s19SaleReceipt").value.trim()||null,status:"active",created_by:state.profile?.id||null};$("#s19SaleMsg").textContent="Saving payment...";const{data:ledger,error:le}=await supabaseClient.from("ledger_entries").insert(p).select().single();if(le)return $("#s19SaleMsg").textContent=le.message;const{error:ae}=await supabaseClient.from("payment_allocations").insert({ledger_entry_id:ledger.id,sale_deal_id:activeDeal.id,plot_id:plotId,client_id:clientId,allocated_amount:amount,allocation_type:"manual",notes:"Created from Sale Deals page",created_by:state.profile?.id||null});if(ae){await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:"Allocation failed"}).eq("id",ledger.id);return $("#s19SaleMsg").textContent=ae.message}const projected=Number(activeDeal._received||0)+amount;if(projected>=Number(activeDeal._totalSale||0)&&Number(activeDeal._totalSale||0)>0){await supabaseClient.from("sale_deals").update({deal_status:"completed"}).eq("id",activeDeal.id);await supabaseClient.from("sale_deal_plots").update({plot_deal_status:"sold"}).eq("sale_deal_id",activeDeal.id);await supabaseClient.from("plots").update({availability_status:"sold"}).eq("id",plotId)}$("#s19SaleMsg").textContent="Payment saved into ledger and allocated to sale deal.";$("#s19SaleAmount").value="";if(typeof loadSaleDealsPage==="function")await loadSaleDealsPage().catch(()=>{});await loadSaleRows();if(typeof refreshDashboardCounts==="function")await refreshDashboardCounts().catch(()=>{})}
+  async function voidSalePayment(id){const reason=prompt("Reason for voiding this sale payment?");if(reason===null)return;const{error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from Sale Deals page"}).eq("id",id);if(error)return alert(error.message);if(typeof loadSaleDealsPage==="function")await loadSaleDealsPage().catch(()=>{});await loadSaleRows();if(typeof refreshDashboardCounts==="function")await refreshDashboardCounts().catch(()=>{})}
 
-  async function fetchCaseLedgerRows(){
-    if(!activeCase) return [];
-    const {data,error}=await supabaseClient.from("ledger_entries").select("*").eq("case_id",activeCase.id).order("entry_date",{ascending:false});
-    if(error) throw error;
-    return data||[];
-  }
-
-  function renderMoneySummary(rows, targetId){
-    const active=rows.filter(r=>r.status==="active");
-    const moneyIn=active.filter(r=>r.direction==="money_in").reduce((s,r)=>s+Number(r.amount||0),0);
-    const moneyOut=active.filter(r=>r.direction==="money_out").reduce((s,r)=>s+Number(r.amount||0),0);
-    const target=$(targetId);
-    if(target) target.innerHTML=`<div class="stage18-card"><small>Received</small><strong>${fmt(moneyIn)}</strong></div><div class="stage18-card"><small>Paid / Expenses</small><strong>${fmt(moneyOut)}</strong></div><div class="stage18-card"><small>Net</small><strong>${fmt(moneyIn-moneyOut)}</strong></div>`;
-  }
-
-  async function loadCaseMoneyTables(){
-    let rows=[];
-    try{ rows=await fetchCaseLedgerRows(); }catch(err){ rows=[]; }
-    renderMoneySummary(rows,"#stage18MoneySummary");
-    renderMoneySummary(rows,"#stage18ViewMoneySummary");
-    const moneyBody=$("#stage18MoneyRows");
-    const viewBody=$("#stage18ViewMoneyRows");
-    if(moneyBody){
-      if(!rows.length) moneyBody.innerHTML=`<tr><td colspan="7">No case ledger entries yet.</td></tr>`;
-      else moneyBody.innerHTML=rows.map(r=>`<tr class="${r.status==="voided"?"voided-row":""}"><td>${esc(r.entry_date||"-")}</td><td>${esc(categoryName(r.category_id))}</td><td>${esc(r.description||"-")}</td><td>${r.direction==="money_in"?fmt(r.amount):"-"}</td><td>${r.direction==="money_out"?fmt(r.amount):"-"}</td><td><span class="status-badge ${esc(r.status||"")}">${esc(r.status||"-")}</span></td><td>${r.status==="active"?`<button class="danger-btn" data-stage18-void="${esc(r.id)}">Void</button>`:"-"}</td></tr>`).join("");
-      $$('[data-stage18-void]').forEach(b=>b.onclick=()=>voidCaseMoney(b.dataset.stage18Void));
-    }
-    if(viewBody){
-      if(!rows.length) viewBody.innerHTML=`<tr><td colspan="5">No case ledger entries yet.</td></tr>`;
-      else viewBody.innerHTML=rows.map(r=>`<tr class="${r.status==="voided"?"voided-row":""}"><td>${esc(r.entry_date||"-")}</td><td>${esc(r.description||"-")}</td><td>${r.direction==="money_in"?fmt(r.amount):"-"}</td><td>${r.direction==="money_out"?fmt(r.amount):"-"}</td><td><span class="status-badge ${esc(r.status||"")}">${esc(r.status||"-")}</span></td></tr>`).join("");
-    }
-    refreshBadges(rows);
-  }
-
-  async function saveCaseMoney(e){
-    e.preventDefault();
-    const amount=parseMoneyLocal($("#stage18Amount").value), desc=$("#stage18Desc").value.trim();
-    if(!amount) return $("#stage18MoneyMsg").textContent="Amount must be greater than zero.";
-    if(!desc) return $("#stage18MoneyMsg").textContent="Description is required.";
-    $("#stage18MoneyMsg").textContent="Saving case money entry...";
-    const payload={entry_date:$("#stage18Date").value||today(),direction:$("#stage18Direction").value,amount,payment_method:$("#stage18Method").value||"cash",category_id:$("#stage18Category").value||null,register_id:$("#stage18Register").value||null,description:desc,project_id:activeCase.linked_project_id||null,plot_id:activeCase.linked_plot_id||null,client_id:activeCase.linked_client_id||null,seller_id:activeCase.linked_seller_id||null,case_id:activeCase.id,receipt_no:$("#stage18Receipt").value.trim()||null,voucher_no:$("#stage18Voucher").value.trim()||null,reference_type:"case_money",reference_id:activeCase.id,status:"active",created_by:state.profile?.id||null};
-    const {error}=await supabaseClient.from("ledger_entries").insert(payload);
-    if(error) return $("#stage18MoneyMsg").textContent=error.message;
-    $("#stage18MoneyMsg").textContent="Saved into Daily Accounts.";
-    $("#stage18Amount").value="";
-    await loadCaseMoneyTables();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-
-  async function voidCaseMoney(id){
-    const reason=prompt("Reason for voiding this case money entry?");
-    if(reason===null) return;
-    const {error}=await supabaseClient.from("ledger_entries").update({status:"voided",void_reason:reason||"Voided from Case page"}).eq("id",id);
-    if(error) return alert(error.message);
-    await loadCaseMoneyTables();
-    if(typeof refreshDashboardCounts==="function") await refreshDashboardCounts().catch(()=>{});
-  }
-
-  let badgeBusy=false;
-  async function refreshBadges(prefetched){
-    if(badgeBusy || !ready()) return;
-    const badges=$$('[data-stage18-case-badge]');
-    if(!badges.length) return;
-    badgeBusy=true;
-    try{
-      let rows=[];
-      if(prefetched && activeCase){ rows=prefetched.map(r=>({...r,case_id:activeCase.id})); }
-      else {
-        const ids=[...new Set(badges.map(b=>b.dataset.stage18CaseBadge))];
-        const {data}=await supabaseClient.from("ledger_entries").select("case_id,direction,amount,status").in("case_id",ids);
-        rows=(data||[]);
-      }
-      rows=rows.filter(r=>r.status==="active");
-      badges.forEach(b=>{ const id=b.dataset.stage18CaseBadge; const inn=rows.filter(r=>r.case_id===id&&r.direction==="money_in").reduce((s,r)=>s+Number(r.amount||0),0); const out=rows.filter(r=>r.case_id===id&&r.direction==="money_out").reduce((s,r)=>s+Number(r.amount||0),0); b.textContent=`Case ledger: In ${fmt(inn)} | Out ${fmt(out)}`; });
-    } finally { badgeBusy=false; }
-  }
-
-  function attachCaseButtons(){
-    if(!ready()) return;
-    $$("#casesTableBody [data-edit-case]").forEach(edit=>{
-      const id=edit.dataset.editCase, box=edit.closest(".row-actions");
-      if(!box) return;
-      if(!box.querySelector(`[data-stage18-case-view="${id}"]`)){
-        const view=document.createElement("button");
-        view.type="button"; view.className="small-btn"; view.textContent="View"; view.dataset.stage18CaseView=id; view.onclick=()=>openCaseView(id);
-        box.insertBefore(view, box.firstChild);
-      }
-      if(!box.querySelector(`[data-stage18-case-money="${id}"]`)){
-        const money=document.createElement("button");
-        money.type="button"; money.className="small-btn"; money.textContent="Money"; money.dataset.stage18CaseMoney=id; money.onclick=()=>openMoneyModal(id);
-        const editBtn=box.querySelector('[data-edit-case]');
-        box.insertBefore(money, editBtn || null);
-      }
-      const td=box.closest("td");
-      if(td && !td.querySelector(`[data-stage18-case-badge="${id}"]`)){
-        const badge=document.createElement("span");
-        badge.className="stage18-badge"; badge.dataset.stage18CaseBadge=id; badge.textContent="Case ledger: loading..."; td.appendChild(badge);
-      }
-    });
-    refreshBadges();
-  }
-
-  function boot(){
-    addCss();
-    ensureCaseViewModal();
-    ensureMoneyModal();
-    const label=$(".sidebar-brand small");
-    if(label) label.textContent=STAGE;
-    const h=$$("#page-dashboard .panel h2").find(x=>x.textContent.includes("Stage"));
-    if(h){ h.textContent="Stage 18 Status"; const p=h.parentElement?.querySelector("p"); if(p) p.textContent="Case View added. Open a case, review details, and add case money from inside the case record."; }
-    attachCaseButtons();
-    const body=$("#casesTableBody");
-    if(body) new MutationObserver(()=>setTimeout(attachCaseButtons,100)).observe(body,{childList:true,subtree:true});
-    setInterval(()=>{ const l=$(".sidebar-brand small"); if(l) l.textContent=STAGE; attachCaseButtons(); },2000);
-  }
-  document.addEventListener("DOMContentLoaded",()=>setTimeout(boot,600));
+  let caseBusy=false;
+  async function updateCaseBadges(){if(caseBusy||!ready())return;const badges=$$('[data-s19-case-badge]');if(!badges.length)return;caseBusy=true;try{const ids=[...new Set(badges.map(b=>b.dataset.s19CaseBadge))];const{data}=await supabaseClient.from("ledger_entries").select("case_id,direction,amount,status").in("case_id",ids);const rows=(data||[]).filter(r=>r.status==="active");badges.forEach(b=>{const id=b.dataset.s19CaseBadge,inn=rows.filter(r=>r.case_id===id&&r.direction==="money_in").reduce((s,r)=>s+Number(r.amount||0),0),out=rows.filter(r=>r.case_id===id&&r.direction==="money_out").reduce((s,r)=>s+Number(r.amount||0),0);b.textContent=`Case ledger: In ${fmt(inn)} | Out ${fmt(out)}`})}finally{caseBusy=false}}
+  function attachCaseButtons(){if(!ready())return;$$('#casesTableBody [data-edit-case]').forEach(edit=>{const id=edit.dataset.editCase,box=edit.closest('.row-actions');if(!box)return;if(!box.querySelector(`[data-s19-case-view="${id}"]`)){const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent='View';b.dataset.s19CaseView=id;b.onclick=()=>openCaseView(id);box.insertBefore(b,box.firstChild)}if(!box.querySelector(`[data-s19-case-money="${id}"]`)){const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent='Money';b.dataset.s19CaseMoney=id;b.onclick=()=>openCaseMoney(id);const eb=box.querySelector('[data-edit-case]');box.insertBefore(b,eb||null)}const td=box.closest('td');if(td&&!td.querySelector(`[data-s19-case-badge="${id}"]`)){const sp=document.createElement('span');sp.className='s19badge';sp.dataset.s19CaseBadge=id;sp.textContent='Case ledger: loading...';td.appendChild(sp)}});updateCaseBadges()}
+  function attachSaleButtons(){if(!ready())return;const body=$('#saleDealsTableBody');if(body&&!body.dataset.s19track){body.dataset.s19track='true';body.addEventListener('click',e=>{const v=e.target.closest('[data-view-sale-deal]');if(v)activeDealId=v.dataset.viewSaleDeal},true)}$$('#saleDealsTableBody [data-view-sale-deal]').forEach(view=>{const id=view.dataset.viewSaleDeal,box=view.closest('.row-actions');if(!box)return;if(!box.querySelector(`[data-s19-sale-pay="${id}"]`)){const b=document.createElement('button');b.type='button';b.className='small-btn';b.textContent='Add Payment';b.dataset.s19SalePay=id;b.onclick=()=>openSale(id);box.insertBefore(b,view)}});const header=$('#saleDealDetailOverlay .page-actions.small-page-actions');if(header&&!$('#s19DetailAddPayment')){const b=document.createElement('button');b.id='s19DetailAddPayment';b.type='button';b.className='primary';b.textContent='+ Add Payment';b.onclick=()=>activeDealId?openSale(activeDealId):alert('Open a sale deal from the table first.');header.appendChild(b)}}
+  function boot(){addCss();ensureCaseView();ensureCaseMoney();ensureSaleModal();const label=$('.sidebar-brand small');if(label)label.textContent=STAGE;const h=$$('#page-dashboard .panel h2').find(x=>x.textContent.includes('Stage'));if(h){h.textContent='Stage 19 Status';const p=h.parentElement?.querySelector('p');if(p)p.textContent='Sale Deal payments can now be added from the Sale Deals page into the central ledger with one payment allocation.'}attachCaseButtons();attachSaleButtons();const cb=$('#casesTableBody');if(cb&&!cb.dataset.s19observer){cb.dataset.s19observer='true';new MutationObserver(()=>setTimeout(attachCaseButtons,100)).observe(cb,{childList:true,subtree:true})}const sb=$('#saleDealsTableBody');if(sb&&!sb.dataset.s19observer){sb.dataset.s19observer='true';new MutationObserver(()=>setTimeout(attachSaleButtons,100)).observe(sb,{childList:true,subtree:true})}setInterval(()=>{const l=$('.sidebar-brand small');if(l)l.textContent=STAGE;attachCaseButtons();attachSaleButtons()},2000)}
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,700));
 })();
