@@ -1,23 +1,19 @@
 # PH Estate Manager V2
-## Stage 21.4
+## Stage 21.5
 
-Emergency repair for login/app loading after Stage 21.3.
+Loading repair after Stage 21.4.
 
-Problem found:
-- Stage 21.3 introduced a JavaScript syntax error while trying to patch `config.js` before running it.
-- Because of that, `PH_CONFIG` was not defined.
-- Login could not work because the app configuration never loaded.
-
-Fix:
-- Removed the broken config patch loader.
-- Restored normal `config.js` loading.
-- Restored stable app shell loading.
-- Login should work again.
-- Flicker should stop because only `config.js` controls the visible stage label.
+Fixes:
+- Improves the app shell loading fallback.
+- Uses jsDelivr CDN first for the stable app shell.
+- Falls back to raw GitHub only if CDN fails.
+- Loads current `config.js` normally instead of patching it.
+- Avoids the Stage 21.3 syntax error problem.
+- Avoids the Stage 21 / 21.2 flicker problem.
 
 Note:
-- The sidebar may show `Development Stage 21` after this repair because that is what the current real `config.js` says.
-- The next clean step should move exact version labeling directly into `config.js`, not into an index loader.
+- The visible sidebar may still show `Development Stage 21` because the current real `config.js` says Stage 21.
+- That is acceptable for this repair. The priority is stable loading and login.
 
 Preserved:
 - Seller Payments workflow.
@@ -26,4 +22,4 @@ Preserved:
 - Existing data and database records are untouched.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.4
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.5
