@@ -13,32 +13,44 @@
 <body>
   <div class="box" id="loaderBox">
     <h1>PH Estate Manager V2</h1>
-    <p><strong>Repairing app load...</strong></p>
-    <p class="muted">Stage 21.4 is restoring the stable app shell and loading config normally.</p>
+    <p><strong>Loading app...</strong></p>
+    <p class="muted">Stage 21.5 is loading the stable app shell from CDN fallback and the current config normally.</p>
     <p id="loaderMsg" class="muted">Starting...</p>
   </div>
   <script>
     (async function(){
-      const VERSION = "21.4";
-      const STABLE_INDEX_URL = "https://raw.githubusercontent.com/hphmhc/PH-Estate-Manager-V2/8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html";
+      const VERSION = "21.5";
+      const SHELL_URLS = [
+        "https://cdn.jsdelivr.net/gh/hphmhc/PH-Estate-Manager-V2@8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html",
+        "https://raw.githubusercontent.com/hphmhc/PH-Estate-Manager-V2/8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html"
+      ];
       const msg = document.getElementById("loaderMsg");
+      async function fetchShell(){
+        let lastError = null;
+        for(const url of SHELL_URLS){
+          try{
+            msg.textContent = "Fetching app shell...";
+            const res = await fetch(url + "?cache=" + Date.now(), { cache: "no-store" });
+            if(res.ok) return await res.text();
+            lastError = new Error("Shell request failed: " + res.status);
+          }catch(e){ lastError = e; }
+        }
+        throw lastError || new Error("Could not load app shell.");
+      }
       try {
-        msg.textContent = "Fetching stable app shell...";
-        const res = await fetch(STABLE_INDEX_URL + "?cache=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) throw new Error("Could not load stable app shell: " + res.status);
-        let html = await res.text();
+        let html = await fetchShell();
         html = html
           .replace(/styles\.css\?v=15/g, "styles.css?v=" + VERSION)
           .replace(/config\.js\?v=15/g, "config.js?v=21&cache=" + Date.now())
           .replace(/app\.js\?v=15/g, "app.js?v=" + VERSION)
           .replace(/Development Stage 15/g, "Development Stage 21")
           .replace(/Stage 15 Status/g, "Stage 21 Status")
-          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21 repaired. Seller Payments, Agent Commission, and Sale Deal Payments are loaded through config.js.");
+          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21 stable load. Seller Payments, Agent Commission, and Sale Deal Payments are loaded through config.js.");
         document.open();
         document.write(html);
         document.close();
       } catch (err) {
-        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">Stage 21.4 repair failed: ${String(err.message || err)}</p><p>This is a loading issue, not a data or password issue.</p><a class="btn" href="./?v=21.4&retry=1">Retry</a>`;
+        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">App shell failed to load: ${String(err.message || err)}</p><p>This is a loading issue, not a data or password issue. Refresh once after 1 minute.</p><a class="btn" href="./?v=21.5&retry=1">Retry</a>`;
       }
     })();
   </script>
