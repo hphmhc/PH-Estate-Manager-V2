@@ -1,16 +1,23 @@
 # PH Estate Manager V2
-## Stage 21.3
+## Stage 21.4
 
-Fixes the Stage label flicker.
+Emergency repair for login/app loading after Stage 21.3.
 
 Problem found:
-- Stage 21.2 loaded the current `config.js`, but `config.js` was still writing `Development Stage 21`.
-- The Stage 21.2 index script was writing `Development Stage 21.2`.
-- Both scripts kept overwriting the same sidebar label, causing flicker.
+- Stage 21.3 introduced a JavaScript syntax error while trying to patch `config.js` before running it.
+- Because of that, `PH_CONFIG` was not defined.
+- Login could not work because the app configuration never loaded.
 
 Fix:
-- Stage 21.3 patches the loaded config label before it runs.
-- Only one visible stage value should appear: `Development Stage 21.3`.
+- Removed the broken config patch loader.
+- Restored normal `config.js` loading.
+- Restored stable app shell loading.
+- Login should work again.
+- Flicker should stop because only `config.js` controls the visible stage label.
+
+Note:
+- The sidebar may show `Development Stage 21` after this repair because that is what the current real `config.js` says.
+- The next clean step should move exact version labeling directly into `config.js`, not into an index loader.
 
 Preserved:
 - Seller Payments workflow.
@@ -19,4 +26,4 @@ Preserved:
 - Existing data and database records are untouched.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.3
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.4
