@@ -13,34 +13,32 @@
 <body>
   <div class="box" id="loaderBox">
     <h1>PH Estate Manager V2</h1>
-    <p><strong>Loading Development Stage 21.3...</strong></p>
-    <p class="muted">Loading stable app shell with a patched Stage 21 config label.</p>
+    <p><strong>Repairing app load...</strong></p>
+    <p class="muted">Stage 21.4 is restoring the stable app shell and loading config normally.</p>
     <p id="loaderMsg" class="muted">Starting...</p>
   </div>
   <script>
     (async function(){
-      const VERSION = "21.3";
+      const VERSION = "21.4";
       const STABLE_INDEX_URL = "https://raw.githubusercontent.com/hphmhc/PH-Estate-Manager-V2/8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html";
-      const CONFIG_URL = "config.js?v=21.3";
       const msg = document.getElementById("loaderMsg");
       try {
         msg.textContent = "Fetching stable app shell...";
         const res = await fetch(STABLE_INDEX_URL + "?cache=" + Date.now(), { cache: "no-store" });
         if (!res.ok) throw new Error("Could not load stable app shell: " + res.status);
         let html = await res.text();
-        const patchedConfigLoader = `<script>\n(async function(){\n  const r = await fetch('${CONFIG_URL}&cache=' + Date.now(), {cache:'no-store'});\n  if(!r.ok) throw new Error('Could not load config.js: ' + r.status);\n  let code = await r.text();\n  code = code\n    .replace(/stage-21/g, 'stage-21.3')\n    .replace(/Development Stage 21/g, 'Development Stage 21.3')\n    .replace(/Stage 21 Status/g, 'Stage 21.3 Status')\n    .replace(/Seller Payments workflow added\\. Seller\/land payments can now be saved from the Seller page into Daily Accounts\\./g, 'Stage 21.3 active. Seller Payments, Agent Commission, and Sale Deal Payments are loaded.');\n  (0, eval)(code);\n})();\n<\/script>`;
         html = html
           .replace(/styles\.css\?v=15/g, "styles.css?v=" + VERSION)
-          .replace(/<script src="config\.js\?v=15"><\/script>/g, patchedConfigLoader)
+          .replace(/config\.js\?v=15/g, "config.js?v=21&cache=" + Date.now())
           .replace(/app\.js\?v=15/g, "app.js?v=" + VERSION)
-          .replace(/Development Stage 15/g, "Development Stage " + VERSION)
-          .replace(/Stage 15 Status/g, "Stage " + VERSION + " Status")
-          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21.3 active. Seller Payments, Agent Commission, and Sale Deal Payments are loaded.");
+          .replace(/Development Stage 15/g, "Development Stage 21")
+          .replace(/Stage 15 Status/g, "Stage 21 Status")
+          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21 repaired. Seller Payments, Agent Commission, and Sale Deal Payments are loaded through config.js.");
         document.open();
         document.write(html);
         document.close();
       } catch (err) {
-        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">Stage 21.3 loader failed: ${String(err.message || err)}</p><p>This is a loading issue, not a data issue.</p><a class="btn" href="./?v=21.3&retry=1">Retry</a>`;
+        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">Stage 21.4 repair failed: ${String(err.message || err)}</p><p>This is a loading issue, not a data or password issue.</p><a class="btn" href="./?v=21.4&retry=1">Retry</a>`;
       }
     })();
   </script>
