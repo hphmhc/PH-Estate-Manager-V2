@@ -1,28 +1,27 @@
 # PH Estate Manager V2
-## Stage 20
+## Stage 21
 
-Adds Agent Commission workflow.
+Adds Seller Payments / Land Purchase Payments workflow.
 
 Includes:
-- Adds a Commission button to each Agent row.
-- Opens an Agent Commission / Payments modal.
-- Shows linked sale deals for the selected agent.
-- Shows commission payment history from the central ledger.
-- Allows recording commission paid to an agent from the Agent page.
-- Commission payments save once into `ledger_entries` as `money_out`.
-- Commission payments link to agent, sale deal, project, and plot where possible.
-- Commission payments appear automatically in Daily Accounts.
-- Commission payments can be voided, not deleted.
-- Sidebar version label shows `Development Stage 20`.
+- Adds a Payments button to each Seller row.
+- Opens a Seller Payments modal.
+- Allows recording payments made to sellers as `money_out`.
+- Seller payments save once into the central `ledger_entries` table.
+- Seller payments link to seller, plot, and project where selected.
+- Seller payment history is shown inside the Seller Payments modal.
+- Seller payments appear automatically in Daily Accounts.
+- Seller payments can be voided, not deleted.
+- Sidebar version label shows `Development Stage 21`.
 
 Preserved:
-- Sale Deal Add Payment workflow from Stage 19.2.
-- Sale Deal View Add Payment closes the View first and opens the payment form clearly.
-- Case View and Case Money shortcuts remain available.
+- Sale Deal Add Payment workflow.
+- Agent Commission workflow.
+- Basic Case shortcuts from previous stages.
 
 Important rule:
 - The ledger remains the source of truth.
-- Agent commission payments are not duplicated.
+- Seller payments are not duplicated.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=20
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21
