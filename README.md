@@ -1,22 +1,20 @@
 # PH Estate Manager V2
-## Stage 19
+## Stage 19.2
 
-Adds Sale Deal Payment workflow from the Sale Deals page.
+Hotfix for Sale Deal detail Add Payment modal.
 
-Includes:
-- Adds an Add Payment button to each Sale Deal row.
-- Adds an Add Payment button inside the Sale Deal detail modal.
-- Sale deal payment saves once into `ledger_entries`.
-- Sale deal payment creates one row in `payment_allocations`.
-- Payment links to sale deal, client, plot, project, and central ledger.
+Fixes:
+- When Add Payment is clicked from inside Sale Deal View, the Sale Deal View now closes first and the Add Payment form opens clearly in front.
+- The visible sidebar stage label now shows the exact version: Development Stage 19.2.
+- Dashboard status panel also shows Stage 19.2.
+
+Preserved:
+- Sale Deal row Add Payment workflow.
+- Payment saves once into `ledger_entries`.
+- One `payment_allocations` row is created.
 - Payment appears automatically in Daily Accounts.
-- Sale Deals received/remaining totals update after payment.
-- Sale payment can be voided from the Sale Deals payment modal.
-- Case View and Case Money buttons from Stage 18 are preserved.
-
-Important rule:
-- The ledger remains the source of truth.
-- Payments are not duplicated.
+- Payment can be voided.
+- Case View and Case Money shortcuts remain available.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=19
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=19.2
