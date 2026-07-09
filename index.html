@@ -13,44 +13,81 @@
 <body>
   <div class="box" id="loaderBox">
     <h1>PH Estate Manager V2</h1>
-    <p><strong>Loading app...</strong></p>
-    <p class="muted">Stage 21.5 is loading the stable app shell from CDN fallback and the current config normally.</p>
+    <p><strong>Loading Development Stage 21.6...</strong></p>
+    <p class="muted">Loading stable app shell without document.write and applying the current version safely.</p>
     <p id="loaderMsg" class="muted">Starting...</p>
   </div>
+
   <script>
     (async function(){
-      const VERSION = "21.5";
-      const SHELL_URLS = [
-        "https://cdn.jsdelivr.net/gh/hphmhc/PH-Estate-Manager-V2@8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html",
-        "https://raw.githubusercontent.com/hphmhc/PH-Estate-Manager-V2/8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html"
-      ];
+      const VERSION = "21.6";
+      const SHELL_URL = "https://cdn.jsdelivr.net/gh/hphmhc/PH-Estate-Manager-V2@8e2aba764d0bb0ceb0e46de8954c91b4e4456d67/index.html";
+      const CONFIG_URL = "config.js?v=21.6";
+      const APP_URL = "app.js?v=21.6";
+      const SUPABASE_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
       const msg = document.getElementById("loaderMsg");
-      async function fetchShell(){
-        let lastError = null;
-        for(const url of SHELL_URLS){
-          try{
-            msg.textContent = "Fetching app shell...";
-            const res = await fetch(url + "?cache=" + Date.now(), { cache: "no-store" });
-            if(res.ok) return await res.text();
-            lastError = new Error("Shell request failed: " + res.status);
-          }catch(e){ lastError = e; }
-        }
-        throw lastError || new Error("Could not load app shell.");
+
+      function setMsg(text){ if(msg) msg.textContent = text; }
+
+      function loadScript(src){
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.async = false;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error("Failed to load script: " + src));
+          document.body.appendChild(s);
+        });
       }
-      try {
-        let html = await fetchShell();
-        html = html
-          .replace(/styles\.css\?v=15/g, "styles.css?v=" + VERSION)
-          .replace(/config\.js\?v=15/g, "config.js?v=21&cache=" + Date.now())
-          .replace(/app\.js\?v=15/g, "app.js?v=" + VERSION)
-          .replace(/Development Stage 15/g, "Development Stage 21")
-          .replace(/Stage 15 Status/g, "Stage 21 Status")
-          .replace(/Sale Deals page added with linked clients, plots, payment summary, and status view\./g, "Stage 21 stable load. Seller Payments, Agent Commission, and Sale Deal Payments are loaded through config.js.");
-        document.open();
-        document.write(html);
-        document.close();
-      } catch (err) {
-        document.getElementById("loaderBox").innerHTML = `<h1>PH Estate Manager V2</h1><p class="err">App shell failed to load: ${String(err.message || err)}</p><p>This is a loading issue, not a data or password issue. Refresh once after 1 minute.</p><a class="btn" href="./?v=21.5&retry=1">Retry</a>`;
+
+      async function runTextScript(url, transform){
+        const res = await fetch(url + "&cache=" + Date.now(), { cache: "no-store" });
+        if(!res.ok) throw new Error("Failed to load script text: " + url + " status " + res.status);
+        let code = await res.text();
+        if(transform) code = transform(code);
+        const s = document.createElement("script");
+        s.textContent = code;
+        document.body.appendChild(s);
+      }
+
+      function patchConfig(code){
+        return code
+          .split('stage: "stage-21"').join('stage: "stage-21.6"')
+          .split('const STAGE = "Development Stage 21"').join('const STAGE = "Development Stage 21.6"')
+          .split('h.textContent = "Stage 21 Status"').join('h.textContent = "Stage 21.6 Status"')
+          .split('Seller Payments workflow added. Seller/land payments can now be saved from the Seller page into Daily Accounts.')
+          .join('Stage 21.6 active. Seller Payments, Agent Commission, and Sale Deal Payments are loaded.');
+      }
+
+      try{
+        setMsg("Fetching app shell...");
+        const shellRes = await fetch(SHELL_URL + "?cache=" + Date.now(), { cache: "no-store" });
+        if(!shellRes.ok) throw new Error("App shell request failed: " + shellRes.status);
+        let html = await shellRes.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        document.head.innerHTML = doc.head.innerHTML
+          .replace(/styles\.css\?v=15/g, "styles.css?v=" + VERSION);
+        document.body.innerHTML = doc.body.innerHTML;
+
+        const staticLabel = document.querySelector(".sidebar-brand small");
+        if(staticLabel) staticLabel.textContent = "Development Stage " + VERSION;
+        const staticStage = [...document.querySelectorAll("#page-dashboard .panel h2")].find(x => x.textContent.includes("Stage"));
+        if(staticStage){
+          staticStage.textContent = "Stage " + VERSION + " Status";
+          const p = staticStage.parentElement && staticStage.parentElement.querySelector("p");
+          if(p) p.textContent = "Stage 21.6 active. Seller Payments, Agent Commission, and Sale Deal Payments are loaded.";
+        }
+
+        setMsg("Loading Supabase...");
+        await loadScript(SUPABASE_URL);
+        setMsg("Loading app config...");
+        await runTextScript(CONFIG_URL, patchConfig);
+        setMsg("Loading app logic...");
+        await loadScript(APP_URL);
+      }catch(err){
+        document.body.innerHTML = `<div class="box"><h1>PH Estate Manager V2</h1><p class="err">Stage 21.6 load failed: ${String(err.message || err)}</p><p>This is a loading issue, not a database or password issue.</p><a class="btn" href="./?v=21.6&retry=1">Retry</a></div>`;
       }
     })();
   </script>
