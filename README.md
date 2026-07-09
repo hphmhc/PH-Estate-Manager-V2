@@ -1,20 +1,20 @@
 # PH Estate Manager V2
-## Stage 21.1
+## Stage 21.2
 
-Cache / version loading hotfix.
+Repair for the Stage 21.1 loader.
 
 Fixes:
-- Replaces the old root `index.html` asset loading problem.
-- The app now loads through a Stage 21.1 cache-busting loader.
-- The visible sidebar label shows `Development Stage 21.1`.
-- Dashboard status panel also shows Stage 21.1.
-- The loader forces the app shell to use fresh asset URLs instead of the old `?v=15` script references.
+- Stage 21.1 loader was unreliable.
+- Stage 21.2 now loads the stable app shell from the last known working index version.
+- The stable app shell then loads the current `config.js` features.
+- Visible sidebar label shows `Development Stage 21.2`.
+- Dashboard status panel shows Stage 21.2.
 
 Preserved:
 - Seller Payments workflow from Stage 21.
 - Agent Commission workflow.
 - Sale Deal Add Payment workflow.
-- Case shortcuts from previous stages.
+- Existing data and database records are untouched.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.1
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=21.2
