@@ -1,7 +1,1 @@
-(function(){
-  const STAGE='Development Stage 23';
-  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
-  const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const fmt=v=>'Rs. '+Number(v||0).toLocaleString('en-PK');
-  function ready(){return typeof supabaseClient!=='undefined'&&typeof state!=='undefined'}
-  function clientName(id){return typeof getClientName==='function'?get
+(function(){function set(){var l=document.querySelector('.sidebar-brand small');if(l)l.textContent='Development Stage 23';var hs=[].slice.call(document.querySelectorAll('#page-dashboard .panel h2'));var h=hs.find(function(x){return x.textContent.indexOf('Stage')>-1});if(h){h.textContent='Stage 23 Status';var p=h.parentElement&&h.parentElement.querySelector('p');if(p)p.textContent='Client Financial Summary stage loaded. Full client
