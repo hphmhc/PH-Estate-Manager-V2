@@ -1,28 +1,24 @@
 (function(){
   window.PH_APP_VERSION = {
-    stage: '24.1',
-    label: 'Development Stage 24.1 — Deployment Cleanup',
-    title: 'Stage 24.1 Deployment Cleanup',
-    text: 'Version controller active. Stage 22 is the last stable feature set. Stage 23 Client Financial Summary remains paused until deployment behavior is fully stable.',
-    build: 'stage-24-1-20260710'
+    stage: '24.2',
+    label: 'Development Stage 24.2 — Safe Deployment Cleanup',
+    title: 'Stage 24.2 Safe Deployment Cleanup',
+    text: 'Safe version controller active. Login/app loading is the priority. Stage 22 is the last stable feature set. Stage 23 Client Financial Summary remains paused.',
+    build: 'stage-24-2-20260710'
   };
 
-  var applying = false;
-
   function applyVersion(){
-    if(applying) return;
-    applying = true;
     try{
       var info = window.PH_APP_VERSION;
       var sidebarLabel = document.querySelector('.sidebar-brand small');
-      if(sidebarLabel && sidebarLabel.textContent !== info.label) sidebarLabel.textContent = info.label;
+      if(sidebarLabel) sidebarLabel.textContent = info.label;
 
       var headers = Array.prototype.slice.call(document.querySelectorAll('#page-dashboard .panel h2'));
       var stageHeader = headers.find(function(h){ return h.textContent && h.textContent.indexOf('Stage') !== -1; });
       if(stageHeader){
-        if(stageHeader.textContent !== info.title) stageHeader.textContent = info.title;
+        stageHeader.textContent = info.title;
         var p = stageHeader.parentElement && stageHeader.parentElement.querySelector('p');
-        if(p && p.textContent !== info.text) p.textContent = info.text;
+        if(p) p.textContent = info.text;
       }
 
       var topbar = document.querySelector('.topbar') || document.querySelector('.app-header') || document.querySelector('header');
@@ -41,25 +37,15 @@
         topbar.appendChild(badge);
       }
       if(badge) badge.textContent = 'Build: ' + info.build;
-    } finally {
-      applying = false;
+    }catch(e){
+      console.warn('PH version controller skipped:', e);
     }
   }
 
-  function watchVersionTargets(){
-    if(window.__phVersionObserverActive) return;
-    window.__phVersionObserverActive = true;
-    var observer = new MutationObserver(function(){ applyVersion(); });
-    observer.observe(document.documentElement, { childList:true, subtree:true, characterData:true });
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(applyVersion, 100);
-    setTimeout(watchVersionTargets, 200);
-  });
-  setTimeout(applyVersion, 200);
-  setTimeout(applyVersion, 600);
-  setTimeout(watchVersionTargets, 900);
-  setInterval(applyVersion, 100);
-  console.log('PH version controller active:', window.PH_APP_VERSION);
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(applyVersion, 500); });
+  setTimeout(applyVersion, 1000);
+  setTimeout(applyVersion, 2500);
+  setTimeout(applyVersion, 5000);
+  setInterval(applyVersion, 5000);
+  console.log('PH safe version controller active:', window.PH_APP_VERSION);
 })();
