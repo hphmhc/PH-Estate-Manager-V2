@@ -1,24 +1,27 @@
 # PH Estate Manager V2
-## Stage 24.2 — Safe Deployment Cleanup
+## Stage 24.3 — Remove Stage 21 Source
 
-Emergency follow-up after Stage 24.1 caused browser unresponsiveness.
+Stage 24.3 fixes the recurring Stage 21 flicker at the source.
+
+Problem:
+- The real `config.js` still contains Stage 21 text.
+- It runs on a timer and keeps rewriting the sidebar back to `Development Stage 21`.
+- Previous fixes tried to override that after load, which caused flicker or freezing.
 
 Fix:
-- Keeps `version.js` as the visible version controller.
-- Removes the aggressive 100ms loop.
-- Removes the MutationObserver.
-- Applies the version label only a few times during startup, then every 5 seconds.
-- Priority is app loading and login stability.
-- Does not touch login, database, or business data.
-- Does not add new feature code.
+- Added `config-stage24.js`.
+- The app now loads `config-stage24.js` instead of raw `config.js`.
+- `config-stage24.js` loads the real `config.js`, patches only the Stage 21 visible labels before execution, then runs the existing config code.
+- Existing business/payment workflow code is preserved.
+- No aggressive version loop.
+- No database/data changes.
 
 Current product status:
 - Stage 22 is the last stable feature set.
-- Stage 23 Client Financial Summary remains paused until deployment/version behavior is stable.
-- Database/data records are untouched.
+- Stage 23 Client Financial Summary remains paused until deployment/version behavior is confirmed stable.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=24.2
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=24.3
 
 Expected visible label:
-Development Stage 24.2 — Safe Deployment Cleanup
+Development Stage 24 — Deployment Cleanup
