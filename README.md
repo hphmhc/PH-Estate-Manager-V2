@@ -1,25 +1,18 @@
 # PH Estate Manager V2
-## Stage 22
+## Stage 22 stable / Stage 23 paused
 
-Adds Project Financial Summary workflow.
+Stage 22 remains the current stable feature stage.
 
-Includes:
-- Adds a Financials button to each Project row.
-- Opens a Project Financial Summary modal.
-- Shows total Money In for the project.
-- Shows total Money Out for the project.
-- Shows Net Balance for the project.
-- Shows all linked project ledger entries.
-- Shows a small Net badge on each Project row.
-- Uses `ledger_entries` as the source of truth.
-- No duplicate money records are created.
-- Sidebar version label shows `Development Stage 22`.
-
-Preserved:
+Stable features preserved:
+- Project Financial Summary workflow.
 - Seller Payments workflow.
 - Agent Commission workflow.
 - Sale Deal Add Payment workflow.
 - Existing data and database records are untouched.
 
+Stage 23 note:
+- Client Financial Summary was started, but the feature script is currently paused as a safe no-op so it does not break the app.
+- The next step should implement Client Financial Summary cleanly in a smaller, safer change.
+
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=22
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=23
