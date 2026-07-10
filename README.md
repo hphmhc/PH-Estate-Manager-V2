@@ -1,14 +1,14 @@
 # PH Estate Manager V2
-## Stage 24 — Deployment & Version Cleanup
+## Stage 24.1 — Deployment & Version Cleanup
 
-Stage 24 focuses on deployment/version stability, not new business features.
+Stage 24.1 strengthens the visible version controller.
 
 Changes:
-- Added `version.js` as the dedicated visible version controller.
-- Wired `index.html` to load `version.js` with cache busting.
-- Added a visible build badge in the app header/topbar when available.
-- Stopped putting new feature code directly into the loader.
-- Keeps login/app loading as the priority.
+- Keeps `version.js` as the dedicated visible version controller.
+- Re-applies the version label aggressively so old `config.js` cannot visibly win.
+- Adds a MutationObserver to immediately restore the Stage 24.1 label if another script changes it.
+- Does not touch login, database, or business data.
+- Does not add new feature code.
 
 Current product status:
 - Stage 22 is the last stable feature set.
@@ -16,7 +16,7 @@ Current product status:
 - Database/data records are untouched.
 
 Test URL:
-https://hphmhc.github.io/PH-Estate-Manager-V2/?v=24
+https://hphmhc.github.io/PH-Estate-Manager-V2/?v=24.1
 
 Expected visible label:
-Development Stage 24 — Deployment Cleanup
+Development Stage 24.1 — Deployment Cleanup
