@@ -1,1 +1,1 @@
-console.log('Stage 23 script loaded');
+(function(){const ST='Development Stage 23',$=s=>document.querySelector(s),A=s=>Array.from(document.querySelectorAll(s)),fmt=v=>'Rs. '+Number(v||0).toLocaleString('en-PK'),esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));function ready(){return typeof supabaseClient!='undefined'&&typeof state!='undefined'}function cname(id){return typeof getClientName=='function
