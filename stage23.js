@@ -1,1 +1,1 @@
-(function(){function set(){var l=document.querySelector('.sidebar-brand small');if(l)l.textContent='Development Stage 23';var hs=[].slice.call(document.querySelectorAll('#page-dashboard .panel h2'));var h=hs.find(function(x){return x.textContent.indexOf('Stage')>-1});if(h){h.textContent='Stage 23 Status';var p=h.parentElement&&h.parentElement.querySelector('p');if(p)p.textContent='Client Financial Summary stage loaded. Full client
+console.log('Stage 23 script loaded');
